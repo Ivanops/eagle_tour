@@ -1,17 +1,18 @@
 "use client";
 
 import { Link } from "../lib/router";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
   addMatchSet,
   deleteMatchSet,
   formatMatchStatus,
-  MatchStatus,
   readMatches,
+  readPlayers,
   readSession,
   readTournaments,
+  RegisteredPlayer,
   SessionPlayer,
   TennisMatch,
   Tournament,
@@ -29,7 +30,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
   const [session, setSession] = useState<SessionPlayer | null>(null);
   const [match, setMatch] = useState<TennisMatch | null>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [status, setStatus] = useState<MatchStatus>("por_jugar");
+  const [matchPlayers, setMatchPlayers] = useState<RegisteredPlayer[]>([]);
   const [notice, setNotice] = useState("");
   const [noticeTone, setNoticeTone] = useState<NoticeTone>("success");
 
@@ -42,10 +43,11 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
     setMatch(currentMatch);
 
     if (currentMatch && currentTournament) {
-      setStatus(currentMatch.status);
       setTournament(currentTournament);
+      setMatchPlayers(readPlayers().filter((player) => currentMatch.playerEmails.includes(player.email)));
     } else {
       setTournament(null);
+      setMatchPlayers([]);
     }
   }
 
@@ -54,14 +56,12 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
     refreshMatch();
   }, [matchId]);
 
-  function handleUpdateStatus(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  function handleAcceptResult() {
     if (!session) {
       return;
     }
 
-    const result = updateMatchStatus(matchId, session, status);
+    const result = updateMatchStatus(matchId, session, "finalizado");
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
@@ -136,8 +136,11 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
   }
 
   const isCreator = tournament.creatorEmail === session.email;
-  const canEditStatus = isCreator && tournament.status !== "finalizado";
-  const canEditSets = canEditStatus;
+  const isMatchPlayer = match.playerEmails.includes(session.email);
+  const hasAcceptedResult = match.finalizationAcceptedBy.includes(session.email);
+  const canAcceptResult =
+    isMatchPlayer && !hasAcceptedResult && match.status !== "finalizado" && tournament.status !== "finalizado";
+  const canEditSets = isCreator && match.status !== "finalizado" && tournament.status !== "finalizado";
 
   return (
     <main className="page-shell">
@@ -228,23 +231,50 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
           <div className="info-card">
             <h3>Estado</h3>
             <p>{formatMatchStatus(match.status)}</p>
+            <p className="field-help">
+              {match.finalizationAcceptedBy.length} de 4 jugadores aceptaron el resultado.
+            </p>
           </div>
-          {canEditStatus ? (
-            <form className="auth-form" onSubmit={handleUpdateStatus}>
-              <label>
-                Estado del partido
-                <select
-                  onChange={(event) => setStatus(event.target.value as MatchStatus)}
-                  value={status}
-                >
-                  <option value="por_jugar">Por jugar</option>
-                  <option value="finalizado">Finalizado</option>
-                </select>
-              </label>
-              <button className="primary-button submit-button" type="submit">
-                Guardar estado
+          <div className="info-card">
+            <h3>Jugadores del partido</h3>
+            <div className="match-player-list">
+              {matchPlayers.map((player) => {
+                const accepted = match.finalizationAcceptedBy.includes(player.email);
+
+                return (
+                  <div className="match-player-row" key={player.email}>
+                    <span
+                      aria-label={accepted ? "Acepto el resultado" : "Pendiente de aceptar"}
+                      className={accepted ? "status-icon accepted" : "status-icon pending"}
+                      role="img"
+                    >
+                      {accepted ? "OK" : "--"}
+                    </span>
+                    <div>
+                      <strong>{player.name}</strong>
+                      <p>{player.email}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {isMatchPlayer ? (
+              <button
+                className="primary-button submit-button inline-action"
+                disabled={!canAcceptResult}
+                onClick={handleAcceptResult}
+                type="button"
+              >
+                {hasAcceptedResult ? "Resultado aceptado" : "Aceptar resultado y finalizar"}
               </button>
-            </form>
+            ) : (
+              <p className="field-help">Solo los jugadores de este partido pueden finalizarlo.</p>
+            )}
+          </div>
+          {matchPlayers.length < 4 ? (
+            <p className="notice notice-error">
+              Este partido necesita 4 jugadores para poder finalizarse.
+            </p>
           ) : null}
           {notice ? <p className={`notice notice-${noticeTone}`}>{notice}</p> : null}
           <Link className="secondary-button inline-action" href={`/torneos/${tournament.id}`}>

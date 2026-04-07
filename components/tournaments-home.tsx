@@ -6,8 +6,10 @@ import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
   createTournament,
+  deleteTournament,
   formatGender,
   formatTournamentStatus,
+  MAX_TOURNAMENTS_PER_CREATOR,
   readMatches,
   readSession,
   readTournaments,
@@ -79,7 +81,7 @@ export function TournamentsHome() {
       return;
     }
 
-    const tournament = createTournament({
+    const result = createTournament({
       name,
       date,
       location,
@@ -89,6 +91,13 @@ export function TournamentsHome() {
       creator: session,
     });
 
+    if (!result.ok) {
+      setNoticeTone("error");
+      setNotice(result.message);
+      refreshData();
+      return;
+    }
+
     setName("");
     setDate(todayDate);
     setLocation("");
@@ -97,7 +106,7 @@ export function TournamentsHome() {
     setPassword("");
     setShowCreate(false);
     setNoticeTone("success");
-    setNotice(`Torneo creado: ${tournament.name}. Aun no estas anotado.`);
+    setNotice(result.message);
     refreshData();
   }
 
@@ -127,6 +136,30 @@ export function TournamentsHome() {
     created: "torneos creados por ti",
     joined: "torneos donde estas anotado",
   }[filter];
+  const createdTournamentCount = tournaments.filter(
+    (tournament) => tournament.creatorEmail === session.email,
+  ).length;
+  const canCreateTournament = createdTournamentCount < MAX_TOURNAMENTS_PER_CREATOR;
+
+  function handleDeleteTournament(tournamentId: string, tournamentName: string) {
+    if (!session) {
+      setNoticeTone("error");
+      setNotice("Inicia sesion para borrar torneos.");
+      return;
+    }
+
+    if (!window.confirm(`Borrar ${tournamentName}? Esta accion tambien borra sus partidos.`)) {
+      return;
+    }
+
+    const result = deleteTournament(tournamentId, session);
+    setNoticeTone(result.ok ? "success" : "error");
+    setNotice(result.message);
+
+    if (result.ok) {
+      refreshData();
+    }
+  }
 
   return (
     <main className="page-shell">
@@ -141,14 +174,20 @@ export function TournamentsHome() {
         </p>
         <button
           className="primary-button submit-button"
+          disabled={!canCreateTournament}
           onClick={() => setShowCreate((current) => !current)}
           type="button"
         >
           {showCreate ? "Ocultar formulario" : "Crear torneo"}
         </button>
+        {!canCreateTournament ? (
+          <p className="field-help">
+            Ya creaste {MAX_TOURNAMENTS_PER_CREATOR} torneos. Borra uno para crear otro.
+          </p>
+        ) : null}
       </section>
 
-      {showCreate ? (
+      {showCreate && canCreateTournament ? (
         <section className="panel create-panel">
           <div className="panel-header">
             <p className="section-kicker">Nuevo torneo</p>
@@ -260,29 +299,41 @@ export function TournamentsHome() {
       <section className="tournament-list" aria-label="Lista de torneos">
         {filteredTournaments.map((tournament) => {
           const isJoined = tournament.playerEmails.includes(session.email);
+          const isCreator = tournament.creatorEmail === session.email;
           const matchCount = matches.filter((match) => tournament.matchIds.includes(match.id)).length;
 
           return (
-            <Link className="tournament-card" href={`/torneos/${tournament.id}`} key={tournament.id}>
-              <div>
-                <p className="section-kicker">{tournament.level}</p>
-                <h2>{tournament.name}</h2>
-                <p>{tournament.location}</p>
-              </div>
-              <div className="card-meta">
-                <span>{tournament.date || "Fecha por confirmar"}</span>
-                <span>{formatGender(tournament.gender)}</span>
-                <span>{formatTournamentStatus(tournament.status)}</span>
-                <span>{matchCount} partidos</span>
-                <strong>
-                  {isJoined
-                    ? "Anotado"
-                    : tournament.status === "abierto"
-                      ? "Pide password"
-                      : "Inscripcion cerrada"}
-                </strong>
-              </div>
-            </Link>
+            <article className="tournament-card" key={tournament.id}>
+              <Link className="tournament-card-link" href={`/torneos/${tournament.id}`}>
+                <div>
+                  <p className="section-kicker">{tournament.level}</p>
+                  <h2>{tournament.name}</h2>
+                  <p>{tournament.location}</p>
+                </div>
+                <div className="card-meta">
+                  <span>{tournament.date || "Fecha por confirmar"}</span>
+                  <span>{formatGender(tournament.gender)}</span>
+                  <span>{formatTournamentStatus(tournament.status)}</span>
+                  <span>{matchCount} partidos</span>
+                  <strong>
+                    {isJoined
+                      ? "Anotado"
+                      : tournament.status === "abierto"
+                        ? "Pide password"
+                        : "Inscripcion cerrada"}
+                  </strong>
+                </div>
+              </Link>
+              {isCreator ? (
+                <button
+                  className="danger-button inline-action"
+                  onClick={() => handleDeleteTournament(tournament.id, tournament.name)}
+                  type="button"
+                >
+                  Borrar torneo
+                </button>
+              ) : null}
+            </article>
           );
         })}
       </section>

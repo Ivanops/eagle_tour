@@ -132,8 +132,10 @@ select {
 }
 
 .primary-button,
-.secondary-button {
+.secondary-button,
+.danger-button {
   border-radius: 999px;
+  cursor: pointer;
   padding: 0.95rem 1.4rem;
   font-family: "Trebuchet MS", sans-serif;
   font-weight: 700;
@@ -154,8 +156,15 @@ select {
   border: 1px solid rgba(11, 122, 83, 0.16);
 }
 
+.danger-button {
+  background: #fff1e8;
+  color: #7c2d12;
+  border: 1px solid rgba(180, 72, 18, 0.34);
+}
+
 .primary-button:hover,
-.secondary-button:hover {
+.secondary-button:hover,
+.danger-button:hover {
   transform: translateY(-2px);
 }
 
@@ -629,6 +638,40 @@ button {
   gap: 0.7rem;
 }
 
+.standings-panel {
+  margin-bottom: 1rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.standings-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-family: "Trebuchet MS", sans-serif;
+}
+
+.standings-table th,
+.standings-table td {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.standings-table th {
+  color: var(--primary-dark);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.standings-table td:first-child {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .set-list {
   display: grid;
   gap: 0.85rem;
@@ -657,6 +700,49 @@ button {
   padding: 0.7rem;
   background: rgba(255, 255, 255, 0.92);
   color: var(--text);
+}
+
+.match-player-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.8rem 0 1rem;
+}
+
+.match-player-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.match-player-row p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.status-icon {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 999px;
+  font-family: "Trebuchet MS", sans-serif;
+  font-weight: 700;
+}
+
+.status-icon.accepted {
+  background: #eaf7ee;
+  color: #14532d;
+}
+
+.status-icon.pending {
+  background: #fff1e8;
+  color: #7c2d12;
 }
 
 .filter-bar {
@@ -703,6 +789,12 @@ button {
   transition: transform 180ms ease, border-color 180ms ease;
 }
 
+.tournament-card-link {
+  display: grid;
+  gap: 1.2rem;
+  color: inherit;
+}
+
 .tournament-card:hover,
 .link-card:hover {
   transform: translateY(-2px);
@@ -734,8 +826,7 @@ button {
     align-items: center;
   }
 
-  .tournament-list,
-  .tournament-form {
+  .tournament-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

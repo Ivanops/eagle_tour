@@ -48,9 +48,23 @@ export type TennisMatch = {
   startsAt: string;
   playerA: string;
   playerB: string;
+  playerEmails: string[];
+  finalizationAcceptedBy: string[];
   status: MatchStatus;
   score: string;
   sets: MatchSet[];
+};
+
+export type TournamentStandingRow = {
+  email: string;
+  name: string;
+  points: number;
+  setsFor: number;
+  setsAgainst: number;
+  setsDifference: number;
+  gamesFor: number;
+  gamesAgainst: number;
+  gamesDifference: number;
 };
 
 export type CreateTournamentInput = {
@@ -64,11 +78,15 @@ export type CreateTournamentInput = {
 };
 
 const KEYS = {
+  demoVersion: "tennis-app.demo-version",
   players: "tennis-app.players",
   session: "tennis-app.session",
   tournaments: "tennis-app.tournaments",
   matches: "tennis-app.matches",
 } as const;
+
+export const MAX_TOURNAMENTS_PER_CREATOR = 3;
+const DEMO_DATA_VERSION = "standings-demo-v1";
 
 const defaultPlayers: RegisteredPlayer[] = [
   {
@@ -78,6 +96,62 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "482913",
     name: "Lucia Navarro",
     gender: "femenino",
+  },
+  {
+    email: "sofia@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "718204",
+    name: "Sofia Vega",
+    gender: "femenino",
+  },
+  {
+    email: "emma@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "319845",
+    name: "Emma Castillo",
+    gender: "femenino",
+  },
+  {
+    email: "valentina@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "904112",
+    name: "Valentina Ruiz",
+    gender: "femenino",
+  },
+  {
+    email: "mateo@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "562901",
+    name: "Mateo Rios",
+    gender: "masculino",
+  },
+  {
+    email: "diego@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "119362",
+    name: "Diego Torres",
+    gender: "masculino",
+  },
+  {
+    email: "tomas@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "680455",
+    name: "Tomas Herrera",
+    gender: "masculino",
+  },
+  {
+    email: "bruno@tennisapp.com",
+    password: "demo1234",
+    verified: true,
+    verificationCode: "451708",
+    name: "Bruno Silva",
+    gender: "masculino",
   },
 ];
 
@@ -92,7 +166,12 @@ const defaultTournaments: Tournament[] = [
     status: "abierto",
     password: "clay2026",
     creatorEmail: "lucia@tennisapp.com",
-    playerEmails: ["lucia@tennisapp.com"],
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "sofia@tennisapp.com",
+      "emma@tennisapp.com",
+      "valentina@tennisapp.com",
+    ],
     matchIds: [],
   },
   {
@@ -102,28 +181,93 @@ const defaultTournaments: Tournament[] = [
     location: "Barcelona Racket Center",
     level: "Intermedio",
     gender: "mixto",
-    status: "abierto",
+    status: "cerrado",
     password: "barca",
     creatorEmail: "lucia@tennisapp.com",
-    playerEmails: [],
-    matchIds: [],
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "sofia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "diego@tennisapp.com",
+    ],
+    matchIds: ["barcelona-open-series-match-1"],
   },
   {
-    id: "roma-spring-cup",
-    name: "Roma Spring Cup",
+    id: "roma-mixed-finals",
+    name: "Roma Mixed Finals",
     date: "04 May 2026",
     location: "Foro Tennis Park",
     level: "Open",
-    gender: "masculino",
-    status: "abierto",
+    gender: "mixto",
+    status: "finalizado",
     password: "roma",
-    creatorEmail: "lucia@tennisapp.com",
-    playerEmails: [],
-    matchIds: [],
+    creatorEmail: "mateo@tennisapp.com",
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "sofia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "diego@tennisapp.com",
+    ],
+    matchIds: ["roma-mixed-finals-match-1"],
   },
 ];
 
-const defaultMatches: TennisMatch[] = [];
+const defaultMatches: TennisMatch[] = [
+  {
+    id: "barcelona-open-series-match-1",
+    tournamentId: "barcelona-open-series",
+    round: "Partido 1",
+    court: "Cancha central",
+    startsAt: "21 Apr 2026",
+    playerA: "Lucia Navarro / Mateo Rios",
+    playerB: "Sofia Vega / Diego Torres",
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "sofia@tennisapp.com",
+      "diego@tennisapp.com",
+    ],
+    finalizationAcceptedBy: [
+      "lucia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "sofia@tennisapp.com",
+    ],
+    status: "por_jugar",
+    score: "6-4, 6-3",
+    sets: [
+      { id: "set-1", pairAGames: 6, pairBGames: 4 },
+      { id: "set-2", pairAGames: 6, pairBGames: 3 },
+    ],
+  },
+  {
+    id: "roma-mixed-finals-match-1",
+    tournamentId: "roma-mixed-finals",
+    round: "Partido 1",
+    court: "Cancha 2",
+    startsAt: "04 May 2026",
+    playerA: "Lucia Navarro / Mateo Rios",
+    playerB: "Sofia Vega / Diego Torres",
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "sofia@tennisapp.com",
+      "diego@tennisapp.com",
+    ],
+    finalizationAcceptedBy: [
+      "lucia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "sofia@tennisapp.com",
+      "diego@tennisapp.com",
+    ],
+    status: "finalizado",
+    score: "4-6, 6-4, 10-8",
+    sets: [
+      { id: "set-1", pairAGames: 4, pairBGames: 6 },
+      { id: "set-2", pairAGames: 6, pairBGames: 4 },
+      { id: "set-3", pairAGames: 10, pairBGames: 8 },
+    ],
+  },
+];
 
 function hasStorage() {
   return typeof window !== "undefined";
@@ -152,6 +296,23 @@ function writeJson<T>(key: string, value: T) {
   if (hasStorage()) {
     window.localStorage.setItem(key, JSON.stringify(value));
   }
+}
+
+function ensureDemoData() {
+  if (!hasStorage() || window.localStorage.getItem(KEYS.demoVersion) === DEMO_DATA_VERSION) {
+    return;
+  }
+
+  writeJson(KEYS.players, defaultPlayers);
+  writeJson(KEYS.tournaments, defaultTournaments);
+  writeJson(KEYS.matches, defaultMatches);
+  writeJson(KEYS.session, {
+    email: "lucia@tennisapp.com",
+    verified: true,
+    name: "Lucia Navarro",
+    gender: "femenino",
+  } satisfies SessionPlayer);
+  window.localStorage.setItem(KEYS.demoVersion, DEMO_DATA_VERSION);
 }
 
 function makeId(name: string) {
@@ -184,6 +345,17 @@ function normalizeTournamentStatus(status: unknown): TournamentStatus {
 
 function normalizeMatchStatus(status: unknown): MatchStatus {
   return status === "finalizado" || status === "finished" ? "finalizado" : "por_jugar";
+}
+
+function getUniqueEmails(emails: unknown[]) {
+  return Array.from(
+    new Set(
+      emails
+        .filter((email): email is string => typeof email === "string")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
 }
 
 function clampGames(games: unknown) {
@@ -226,6 +398,66 @@ function formatMatchScore(sets: MatchSet[]) {
     .join(", ");
 }
 
+function getMatchSides(match: TennisMatch) {
+  return {
+    pairA: match.playerEmails.slice(0, 2),
+    pairB: match.playerEmails.slice(2, 4),
+  };
+}
+
+function getMatchTotals(match: TennisMatch) {
+  return match.sets.reduce(
+    (totals, set) => {
+      const pairAWonSet = set.pairAGames > set.pairBGames;
+      const pairBWonSet = set.pairBGames > set.pairAGames;
+
+      return {
+        pairASets: totals.pairASets + (pairAWonSet ? 1 : 0),
+        pairBSets: totals.pairBSets + (pairBWonSet ? 1 : 0),
+        pairAGames: totals.pairAGames + set.pairAGames,
+        pairBGames: totals.pairBGames + set.pairBGames,
+      };
+    },
+    { pairASets: 0, pairBSets: 0, pairAGames: 0, pairBGames: 0 },
+  );
+}
+
+function getWinningSide(match: TennisMatch) {
+  const totals = getMatchTotals(match);
+
+  if (totals.pairASets !== totals.pairBSets) {
+    return totals.pairASets > totals.pairBSets ? "pairA" : "pairB";
+  }
+
+  if (totals.pairAGames !== totals.pairBGames) {
+    return totals.pairAGames > totals.pairBGames ? "pairA" : "pairB";
+  }
+
+  return null;
+}
+
+function getMatchPlayerEmailsFromNames(match: Partial<TennisMatch>) {
+  const names = `${match.playerA ?? ""} / ${match.playerB ?? ""}`
+    .split(" / ")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const players = readPlayers();
+
+  return getUniqueEmails(
+    names
+      .map((name) => players.find((player) => player.name === name)?.email)
+      .filter(Boolean),
+  );
+}
+
+function normalizeMatchPlayerEmails(match: Partial<TennisMatch>) {
+  if (Array.isArray(match.playerEmails) && match.playerEmails.length > 0) {
+    return getUniqueEmails(match.playerEmails);
+  }
+
+  return getMatchPlayerEmailsFromNames(match);
+}
+
 function areTournamentMatchesFinished(tournament: Tournament, matches: TennisMatch[]) {
   const tournamentMatches = matches.filter((match) => tournament.matchIds.includes(match.id));
   return tournamentMatches.length > 0 && tournamentMatches.every((match) => match.status === "finalizado");
@@ -240,6 +472,7 @@ function createTournamentMatch(
   index: number,
   playerA: string,
   playerB: string,
+  playerEmails: string[],
 ): TennisMatch {
   return {
     id: `${tournament.id}-match-${index}`,
@@ -249,6 +482,8 @@ function createTournamentMatch(
     startsAt: tournament.date,
     playerA,
     playerB,
+    playerEmails,
+    finalizationAcceptedBy: [],
     status: "por_jugar",
     score: "Por jugarse",
     sets: [makeDefaultSet()],
@@ -284,6 +519,7 @@ function buildMixedTournamentMatches(tournament: Tournament, players: Registered
           matches.length + 1,
           formatDoublesTeam(pairA.man, pairA.woman),
           formatDoublesTeam(pairB.man, pairB.woman),
+          [pairA.man.email, pairA.woman.email, pairB.man.email, pairB.woman.email],
         ),
       );
     }
@@ -315,7 +551,15 @@ function buildSingleGenderTournamentMatches(tournament: Tournament, players: Reg
     ];
 
     groupMatches.forEach(([playerA, playerB]) => {
-      matches.push(createTournamentMatch(tournament, matches.length + 1, playerA, playerB));
+      matches.push(
+        createTournamentMatch(
+          tournament,
+          matches.length + 1,
+          playerA,
+          playerB,
+          [player1.email, player2.email, player3.email, player4.email],
+        ),
+      );
     });
   }
 
@@ -438,6 +682,7 @@ export function formatMatchStatus(status: MatchStatus) {
 }
 
 export function readPlayers(): RegisteredPlayer[] {
+  ensureDemoData();
   const players = readJson<RegisteredPlayer[]>(KEYS.players, defaultPlayers);
   const normalizedPlayers = players.map((player) => ({
     ...player,
@@ -461,6 +706,7 @@ export function readTournamentPlayers(tournament: Tournament) {
 }
 
 export function readSession(): SessionPlayer | null {
+  ensureDemoData();
   const session = readJson<SessionPlayer | null>(KEYS.session, null);
 
   if (!session) {
@@ -493,6 +739,7 @@ export function saveSession(player: SessionPlayer | null) {
 }
 
 export function readTournaments(): Tournament[] {
+  ensureDemoData();
   const tournaments = readJson<Tournament[]>(KEYS.tournaments, defaultTournaments);
   const matches = readMatches();
   const normalizedTournaments = tournaments.map((tournament) => {
@@ -536,14 +783,27 @@ export function saveTournaments(tournaments: Tournament[]) {
 }
 
 export function readMatches() {
+  ensureDemoData();
   const matches = readJson<TennisMatch[]>(KEYS.matches, defaultMatches);
   const normalizedMatches = matches.map((match) => {
     const sets = normalizeMatchSets((match as Partial<TennisMatch>).sets);
     const score = match.score && match.score !== "Por jugarse" ? match.score : formatMatchScore(sets);
+    const playerEmails = normalizeMatchPlayerEmails(match);
+    const finalizationAcceptedBy = getUniqueEmails(
+      Array.isArray((match as Partial<TennisMatch>).finalizationAcceptedBy)
+        ? (match as Partial<TennisMatch>).finalizationAcceptedBy ?? []
+        : [],
+    ).filter((email) => playerEmails.includes(email));
+    const status: MatchStatus =
+      playerEmails.length >= 4 && finalizationAcceptedBy.length >= 4
+        ? "finalizado"
+        : "por_jugar";
 
     return {
       ...match,
-      status: normalizeMatchStatus(match.status),
+      playerEmails,
+      finalizationAcceptedBy,
+      status,
       score,
       sets,
     };
@@ -558,6 +818,94 @@ export function readMatches() {
 
 export function saveMatches(matches: TennisMatch[]) {
   writeJson(KEYS.matches, matches);
+}
+
+export function calculateTournamentStandings(
+  tournament: Tournament,
+  matches = readMatches(),
+): TournamentStandingRow[] {
+  const rowsByEmail = new Map<string, TournamentStandingRow>();
+
+  readTournamentPlayers(tournament).forEach((player) => {
+    rowsByEmail.set(player.email, {
+      email: player.email,
+      name: player.name,
+      points: 0,
+      setsFor: 0,
+      setsAgainst: 0,
+      setsDifference: 0,
+      gamesFor: 0,
+      gamesAgainst: 0,
+      gamesDifference: 0,
+    });
+  });
+
+  matches
+    .filter((match) => tournament.matchIds.includes(match.id) && match.status === "finalizado")
+    .forEach((match) => {
+      const sides = getMatchSides(match);
+      const totals = getMatchTotals(match);
+      const winningSide = getWinningSide(match);
+
+      [
+        {
+          emails: sides.pairA,
+          setsFor: totals.pairASets,
+          setsAgainst: totals.pairBSets,
+          gamesFor: totals.pairAGames,
+          gamesAgainst: totals.pairBGames,
+          won: winningSide === "pairA",
+        },
+        {
+          emails: sides.pairB,
+          setsFor: totals.pairBSets,
+          setsAgainst: totals.pairASets,
+          gamesFor: totals.pairBGames,
+          gamesAgainst: totals.pairAGames,
+          won: winningSide === "pairB",
+        },
+      ].forEach((side) => {
+        side.emails.forEach((email) => {
+          const row = rowsByEmail.get(email);
+
+          if (!row) {
+            return;
+          }
+
+          row.points += side.won ? 1 : 0;
+          row.setsFor += side.setsFor;
+          row.setsAgainst += side.setsAgainst;
+          row.gamesFor += side.gamesFor;
+          row.gamesAgainst += side.gamesAgainst;
+          row.setsDifference = row.setsFor - row.setsAgainst;
+          row.gamesDifference = row.gamesFor - row.gamesAgainst;
+        });
+      });
+    });
+
+  return Array.from(rowsByEmail.values()).sort((playerA, playerB) => {
+    if (playerB.points !== playerA.points) {
+      return playerB.points - playerA.points;
+    }
+
+    if (playerB.setsFor !== playerA.setsFor) {
+      return playerB.setsFor - playerA.setsFor;
+    }
+
+    if (playerB.gamesFor !== playerA.gamesFor) {
+      return playerB.gamesFor - playerA.gamesFor;
+    }
+
+    if (playerB.setsDifference !== playerA.setsDifference) {
+      return playerB.setsDifference - playerA.setsDifference;
+    }
+
+    if (playerB.gamesDifference !== playerA.gamesDifference) {
+      return playerB.gamesDifference - playerA.gamesDifference;
+    }
+
+    return playerA.name.localeCompare(playerB.name);
+  });
 }
 
 export function createPlayer(name: string, email: string, password: string, gender: PlayerGender) {
@@ -644,6 +992,17 @@ export function loginPlayer(email: string, password: string) {
 
 export function createTournament(input: CreateTournamentInput) {
   const tournaments = readTournaments();
+  const creatorTournamentCount = tournaments.filter(
+    (tournament) => tournament.creatorEmail === input.creator.email,
+  ).length;
+
+  if (creatorTournamentCount >= MAX_TOURNAMENTS_PER_CREATOR) {
+    return {
+      ok: false as const,
+      message: `Puedes crear hasta ${MAX_TOURNAMENTS_PER_CREATOR} torneos como maximo.`,
+    };
+  }
+
   const tournamentId = makeId(input.name);
   const tournamentDate = input.date.trim() || "Fecha por confirmar";
 
@@ -663,7 +1022,29 @@ export function createTournament(input: CreateTournamentInput) {
 
   saveTournaments([tournament, ...tournaments]);
 
-  return tournament;
+  return {
+    ok: true as const,
+    tournament,
+    message: `Torneo creado: ${tournament.name}. Aun no estas anotado.`,
+  };
+}
+
+export function deleteTournament(tournamentId: string, player: SessionPlayer) {
+  const tournaments = readTournaments();
+  const tournament = tournaments.find((entry) => entry.id === tournamentId);
+
+  if (!tournament) {
+    return { ok: false as const, message: "No encontramos este torneo." };
+  }
+
+  if (tournament.creatorEmail !== player.email) {
+    return { ok: false as const, message: "Solo el creador puede borrar el torneo." };
+  }
+
+  saveTournaments(tournaments.filter((entry) => entry.id !== tournamentId));
+  saveMatches(readMatches().filter((match) => match.tournamentId !== tournamentId));
+
+  return { ok: true as const, message: "Torneo borrado." };
 }
 
 export function joinTournament(tournamentId: string, player: SessionPlayer, password: string) {
@@ -782,18 +1163,37 @@ export function updateMatchStatus(matchId: string, player: SessionPlayer, status
 
   const tournament = tournaments[tournamentIndex];
 
-  if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede editar el estado del partido." };
+  if (status !== "finalizado") {
+    return { ok: false as const, message: "El partido solo puede finalizarse con la aceptacion de los 4 jugadores." };
+  }
+
+  if (!match.playerEmails.includes(player.email)) {
+    return { ok: false as const, message: "Solo los jugadores de este partido pueden aceptar el resultado." };
   }
 
   if (tournament.status === "finalizado") {
     return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
   }
 
+  if (match.status === "finalizado") {
+    return { ok: true as const, match, message: "Este partido ya esta finalizado." };
+  }
+
+  if (match.playerEmails.length < 4) {
+    return { ok: false as const, message: "Este partido necesita 4 jugadores para poder finalizarse." };
+  }
+
+  if (match.finalizationAcceptedBy.includes(player.email)) {
+    return { ok: true as const, match, message: "Ya habias aceptado este resultado." };
+  }
+
+  const finalizationAcceptedBy = [...match.finalizationAcceptedBy, player.email];
+  const isFinalized = finalizationAcceptedBy.length >= 4;
+  const nextStatus: MatchStatus = isFinalized ? "finalizado" : "por_jugar";
   const updatedMatch = {
     ...match,
-    status,
-    score: status === "finalizado" && match.score === "Por jugarse" ? "Finalizado" : match.score,
+    finalizationAcceptedBy,
+    status: nextStatus,
   };
   const nextMatches = [...matches];
   nextMatches[matchIndex] = updatedMatch;
@@ -808,7 +1208,13 @@ export function updateMatchStatus(matchId: string, player: SessionPlayer, status
   };
   saveTournaments(nextTournaments);
 
-  return { ok: true as const, match: updatedMatch, message: "Estado del partido actualizado." };
+  return {
+    ok: true as const,
+    match: updatedMatch,
+    message: isFinalized
+      ? "Los 4 jugadores aceptaron el resultado. Partido finalizado."
+      : `Resultado aceptado. Faltan ${4 - finalizationAcceptedBy.length} jugadores.`,
+  };
 }
 
 export function updateMatchSetGames(
@@ -841,6 +1247,10 @@ export function updateMatchSetGames(
     return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
   }
 
+  if (match.status === "finalizado") {
+    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+  }
+
   const nextSets = match.sets.map((set) =>
     set.id === setId
       ? {
@@ -852,6 +1262,8 @@ export function updateMatchSetGames(
   const updatedMatch = {
     ...match,
     sets: nextSets,
+    finalizationAcceptedBy: [],
+    status: "por_jugar" as const,
     score: formatMatchScore(nextSets),
   };
   const nextMatches = [...matches];
@@ -885,6 +1297,10 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
     return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
   }
 
+  if (match.status === "finalizado") {
+    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+  }
+
   if (match.sets.length >= 5) {
     return { ok: false as const, message: "Un partido puede tener hasta 5 sets." };
   }
@@ -893,6 +1309,8 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
   const updatedMatch = {
     ...match,
     sets: nextSets,
+    finalizationAcceptedBy: [],
+    status: "por_jugar" as const,
     score: formatMatchScore(nextSets),
   };
   const nextMatches = [...matches];
@@ -926,6 +1344,10 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
     return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
   }
 
+  if (match.status === "finalizado") {
+    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+  }
+
   if (match.sets.length <= 1) {
     return { ok: false as const, message: "El partido debe tener al menos 1 set." };
   }
@@ -944,6 +1366,8 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
   const updatedMatch = {
     ...match,
     sets: nextSets,
+    finalizationAcceptedBy: [],
+    status: "por_jugar" as const,
     score: formatMatchScore(nextSets),
   };
   const nextMatches = [...matches];

@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
+  calculateTournamentStandings,
+  deleteTournament,
   formatGender,
   formatMatchStatus,
   formatTournamentStatus,
@@ -18,6 +20,7 @@ import {
   SessionPlayer,
   TennisMatch,
   Tournament,
+  TournamentStandingRow,
   TournamentStatus,
   updateTournamentStatus,
 } from "../lib/mock-tennis-store";
@@ -33,6 +36,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<TennisMatch[]>([]);
   const [players, setPlayers] = useState<RegisteredPlayer[]>([]);
+  const [standings, setStandings] = useState<TournamentStandingRow[]>([]);
   const [password, setPassword] = useState("");
   const [joinNotice, setJoinNotice] = useState("");
   const [managementNotice, setManagementNotice] = useState("");
@@ -45,8 +49,10 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     setTournament(currentTournament);
     if (currentTournament) {
       setPlayers(readTournamentPlayers(currentTournament));
+      setStandings(calculateTournamentStandings(currentTournament));
     } else {
       setPlayers([]);
+      setStandings([]);
     }
     setMatches(
       currentTournament
@@ -60,8 +66,10 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     setTournament(currentTournament);
     if (currentTournament) {
       setPlayers(readTournamentPlayers(currentTournament));
+      setStandings(calculateTournamentStandings(currentTournament));
     } else {
       setPlayers([]);
+      setStandings([]);
     }
     setMatches(
       currentTournament
@@ -106,6 +114,26 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     }
   }
 
+  function handleDeleteTournament() {
+    if (!session || !tournament) {
+      return;
+    }
+
+    if (!window.confirm(`Borrar ${tournament.name}? Esta accion tambien borra sus partidos.`)) {
+      return;
+    }
+
+    const result = deleteTournament(tournament.id, session);
+    setManagementNoticeTone(result.ok ? "success" : "error");
+    setManagementNotice(result.message);
+    setJoinNotice("");
+
+    if (result.ok) {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new Event("app:navigate"));
+    }
+  }
+
   if (!session) {
     return (
       <main className="page-shell">
@@ -138,6 +166,8 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const canClose = tournament.status === "abierto";
   const canReopen = tournament.status === "cerrado";
   const canFinish = tournament.status === "cerrado";
+  const hasFinalizedMatches = matches.some((match) => match.status === "finalizado");
+  const canSeeStandings = tournament.status === "finalizado" || hasFinalizedMatches;
 
   return (
     <main className="page-shell">
@@ -190,6 +220,13 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
               type="button"
             >
               Finalizar torneo
+            </button>
+            <button
+              className="danger-button submit-button"
+              onClick={handleDeleteTournament}
+              type="button"
+            >
+              Borrar torneo
             </button>
           </div>
           {managementNotice ? (
@@ -246,6 +283,46 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
               {joinNotice}
             </p>
           ) : null}
+        </section>
+      ) : null}
+
+      {canSeeStandings ? (
+        <section className="panel standings-panel">
+          <div className="panel-header">
+            <p className="section-kicker">Resultados</p>
+            <h2>Tabla del torneo</h2>
+            <p>Ordenada por puntos, sets a favor y games a favor.</p>
+          </div>
+          <div className="table-scroll">
+            <table className="standings-table">
+              <thead>
+                <tr>
+                  <th>Jugador</th>
+                  <th>Puntos</th>
+                  <th>Sets a favor</th>
+                  <th>Sets en contra</th>
+                  <th>Diferencia sets</th>
+                  <th>Games a favor</th>
+                  <th>Games en contra</th>
+                  <th>Diferencia games</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standings.map((row) => (
+                  <tr key={row.email}>
+                    <td>{row.name}</td>
+                    <td>{row.points}</td>
+                    <td>{row.setsFor}</td>
+                    <td>{row.setsAgainst}</td>
+                    <td>{row.setsDifference}</td>
+                    <td>{row.gamesFor}</td>
+                    <td>{row.gamesAgainst}</td>
+                    <td>{row.gamesDifference}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       ) : null}
 
