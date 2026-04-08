@@ -42,8 +42,6 @@ export function TournamentsHome() {
   const [location, setLocation] = useState("");
   const [level, setLevel] = useState("Intermedio");
   const [gender, setGender] = useState<TournamentGender>("mixto");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [filter, setFilter] = useState<TournamentFilter>("general");
 
   useEffect(() => {
@@ -95,9 +93,9 @@ export function TournamentsHome() {
       return;
     }
 
-    if (!name.trim() || !location.trim() || !password.trim()) {
+    if (!name.trim() || !location.trim()) {
       setNoticeTone("error");
-      setNotice("Completa nombre, sede y password del torneo.");
+      setNotice("Completa nombre y sede del torneo.");
       return;
     }
 
@@ -113,7 +111,7 @@ export function TournamentsHome() {
       location,
       level,
       gender,
-      password,
+      password: `creator-assigned-${Date.now()}`,
       creator: session,
     });
 
@@ -129,8 +127,6 @@ export function TournamentsHome() {
     setLocation("");
     setLevel("Intermedio");
     setGender("mixto");
-    setPassword("");
-    setShowPassword(false);
     setShowCreate(false);
     setNoticeTone("success");
     setNotice(result.message);
@@ -198,8 +194,8 @@ export function TournamentsHome() {
         <p className="eyebrow">Home del jugador</p>
         <h1>Torneos disponibles</h1>
         <p>
-          Explora torneos, entra con el password si aun no estas anotado o crea uno
-          nuevo para invitar jugadores.
+          Explora torneos, revisa tus inscripciones o crea uno nuevo para invitar
+          jugadores.
         </p>
         <button
           className="primary-button submit-button"
@@ -276,26 +272,6 @@ export function TournamentsHome() {
                 <option value="masculino">Solo masculino</option>
               </select>
             </label>
-            <label>
-              Password del torneo
-              <span className="password-field">
-                <input
-                  autoComplete="off"
-                  name="tournament-access-code"
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Password para anotarse"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                />
-                <button
-                  className="password-toggle"
-                  onClick={() => setShowPassword((current) => !current)}
-                  type="button"
-                >
-                  {showPassword ? "Ocultar" : "Ver"}
-                </button>
-              </span>
-            </label>
             <button className="primary-button submit-button" type="submit">
               Guardar torneo
             </button>
@@ -358,7 +334,7 @@ export function TournamentsHome() {
                     {isJoined
                       ? "Anotado"
                       : tournament.status === "abierto"
-                        ? "Pide password"
+                        ? "Asignacion por organizador"
                         : "Inscripcion cerrada"}
                   </strong>
                 </div>

@@ -209,10 +209,19 @@ to authenticated
 using (true);
 
 drop policy if exists "Users can join themselves to tournaments" on public.tournament_players;
-create policy "Users can join themselves to tournaments"
+drop policy if exists "Tournament creators can assign players" on public.tournament_players;
+create policy "Tournament creators can assign players"
 on public.tournament_players for insert
 to authenticated
-with check (auth.uid() = player_id);
+with check (
+  exists (
+    select 1
+    from public.tournaments
+    where tournaments.id = tournament_players.tournament_id
+      and tournaments.creator_id = auth.uid()
+      and tournaments.status = 'abierto'
+  )
+);
 
 drop policy if exists "Matches are readable by authenticated users" on public.matches;
 create policy "Matches are readable by authenticated users"

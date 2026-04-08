@@ -40,6 +40,7 @@ export type TennisStore = {
   createTournament: typeof localTennisStore.createTournament;
   deleteTournament: typeof localTennisStore.deleteTournament;
   joinTournament: typeof localTennisStore.joinTournament;
+  assignTournamentPlayer: typeof localTennisStore.assignTournamentPlayer;
   updateTournamentStatus: typeof localTennisStore.updateTournamentStatus;
   updateMatchStatus: typeof localTennisStore.updateMatchStatus;
   updateMatchSetGames: typeof localTennisStore.updateMatchSetGames;
@@ -71,6 +72,7 @@ export const {
   createTournament,
   deleteMatchSet,
   deleteTournament,
+  assignTournamentPlayer,
   canCreateTournaments,
   formatGender,
   formatMatchStatus,

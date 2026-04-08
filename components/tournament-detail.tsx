@@ -1,18 +1,19 @@
 "use client";
 
 import { Link } from "../lib/router";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
+  assignTournamentPlayer,
   calculateTournamentStandings,
   deleteTournament,
   formatGender,
   formatMatchStatus,
   formatTournamentStatus,
   getTournamentCloseRestriction,
-  joinTournament,
   readMatches,
+  readPlayers,
   readSession,
   readTournamentPlayers,
   readTournaments,
@@ -36,9 +37,8 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<TennisMatch[]>([]);
   const [players, setPlayers] = useState<RegisteredPlayer[]>([]);
+  const [allPlayers, setAllPlayers] = useState<RegisteredPlayer[]>([]);
   const [standings, setStandings] = useState<TournamentStandingRow[]>([]);
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [joinNotice, setJoinNotice] = useState("");
   const [managementNotice, setManagementNotice] = useState("");
   const [joinNoticeTone, setJoinNoticeTone] = useState<NoticeTone>("success");
@@ -60,13 +60,18 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   }, [tournamentId]);
 
   async function refreshTournament(isMounted = true) {
-    const [tournaments, allMatches] = await Promise.all([readTournaments(), readMatches()]);
+    const [tournaments, allMatches, nextAllPlayers] = await Promise.all([
+      readTournaments(),
+      readMatches(),
+      readPlayers(),
+    ]);
     const currentTournament = tournaments.find((entry) => entry.id === tournamentId) ?? null;
 
     if (!isMounted) {
       return;
     }
 
+    setAllPlayers(nextAllPlayers);
     setTournament(currentTournament);
     if (currentTournament) {
       const tournamentMatches = allMatches.filter((match) => currentTournament.matchIds.includes(match.id));
@@ -89,24 +94,17 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     }
   }
 
-  async function handleJoin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function handleAssignPlayer(targetEmail: string) {
     if (!session) {
-      setJoinNoticeTone("error");
-      setJoinNotice("Inicia sesion para anotarte.");
-      setManagementNotice("");
       return;
     }
 
-    const result = await joinTournament(tournamentId, session, password);
-    setJoinNoticeTone(result.ok ? "success" : "error");
-    setJoinNotice(result.message);
-    setManagementNotice("");
+    const result = await assignTournamentPlayer(tournamentId, session, targetEmail);
+    setManagementNoticeTone(result.ok ? "success" : "error");
+    setManagementNotice(result.message);
+    setJoinNotice("");
 
     if (result.ok) {
-      setPassword("");
-      setShowPassword(false);
       await refreshTournament();
     }
   }
@@ -200,7 +198,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
           <span>{tournament.level}</span>
           <span>{formatGender(tournament.gender)}</span>
           <span>{formatTournamentStatus(tournament.status)}</span>
-          <strong>{isJoined ? "Estas anotado" : acceptsPlayers ? "Requiere password" : "Inscripcion cerrada"}</strong>
+          <strong>{isJoined ? "Estas anotado" : acceptsPlayers ? "Asignacion por organizador" : "Inscripcion cerrada"}</strong>
         </div>
       </section>
 
@@ -245,41 +243,55 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
         </section>
       ) : null}
 
-      {!isJoined && acceptsPlayers ? (
+      {isCreator ? (
+        <section className="panel join-panel">
+          <div className="panel-header">
+            <p className="section-kicker">Jugadores</p>
+            <h2>Agregar jugadores al torneo</h2>
+            <p>
+              Solo el creador puede agregar jugadores. Cuando cierres el torneo,
+              las inscripciones quedan bloqueadas.
+            </p>
+          </div>
+          {acceptsPlayers ? (
+            <div className="stack-list">
+              {allPlayers
+                .filter((player) => !tournament.playerEmails.includes(player.email))
+                .filter((player) => tournament.gender === "mixto" || player.gender === tournament.gender)
+                .map((player) => (
+                  <div className="info-card admin-user-card" key={player.email}>
+                    <div className="admin-user-main">
+                      <h3>{player.name}</h3>
+                      <p>{player.email}</p>
+                      <span>{formatGender(player.gender)}</span>
+                    </div>
+                    <button
+                      className="secondary-button inline-action"
+                      onClick={() => handleAssignPlayer(player.email)}
+                      type="button"
+                    >
+                      Agregar al torneo
+                    </button>
+                  </div>
+                ))}
+              {!allPlayers
+                .filter((player) => !tournament.playerEmails.includes(player.email))
+                .filter((player) => tournament.gender === "mixto" || player.gender === tournament.gender)
+                .length ? (
+                <p className="notice">No hay jugadores disponibles para agregar.</p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="notice">Este torneo ya esta cerrado. No se pueden agregar jugadores.</p>
+          )}
+        </section>
+      ) : !isJoined && acceptsPlayers ? (
         <section className="panel join-panel">
           <div className="panel-header">
             <p className="section-kicker">Inscripcion</p>
-            <h2>Ingresa el password del torneo</h2>
-            <p>
-              Tu genero: {formatGender(session.gender)}. Torneo:{" "}
-              {formatGender(tournament.gender)}.
-            </p>
+            <h2>Asignacion por organizador</h2>
+            <p>El creador del torneo debe agregarte a la lista de jugadores.</p>
           </div>
-          <form className="auth-form" onSubmit={handleJoin}>
-            <label>
-              Password
-              <span className="password-field">
-                <input
-                  autoComplete="off"
-                  name="tournament-access-code"
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Password del torneo"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                />
-                <button
-                  className="password-toggle"
-                  onClick={() => setShowPassword((current) => !current)}
-                  type="button"
-                >
-                  {showPassword ? "Ocultar" : "Ver"}
-                </button>
-              </span>
-            </label>
-            <button className="primary-button submit-button" type="submit">
-              Anotarme
-            </button>
-          </form>
           {joinNotice ? (
             <p className={`notice notice-${joinNoticeTone}`} role="alert">
               {joinNotice}

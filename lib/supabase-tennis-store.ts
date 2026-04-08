@@ -918,7 +918,7 @@ export async function createTournament(input: CreateTournamentInput) {
   return {
     ok: true as const,
     tournament,
-    message: `Torneo creado: ${tournament.name}. Aun no estas anotado.`,
+    message: `Torneo creado: ${tournament.name}. Agrega jugadores desde la gestion del torneo.`,
   };
 }
 
@@ -948,43 +948,59 @@ export async function joinTournament(
   player: SessionPlayer,
   password: string,
 ) {
+  void tournamentId;
+  void player;
+  void password;
+
+  return {
+    ok: false as const,
+    message: "La inscripcion la realiza el creador del torneo.",
+  };
+}
+
+export async function assignTournamentPlayer(
+  tournamentId: string,
+  actor: SessionPlayer,
+  targetEmail: string,
+) {
   requireSupabaseEnv();
 
+  const normalizedTargetEmail = targetEmail.trim().toLowerCase();
   const tournament = (await readTournaments()).find((entry) => entry.id === tournamentId);
+
   if (!tournament) {
     return { ok: false as const, message: "No encontramos este torneo." };
   }
 
-  if (tournament.playerEmails.includes(player.email)) {
-    return { ok: true as const, tournament, message: "Ya estabas anotado." };
+  if (tournament.creatorEmail !== actor.email) {
+    return { ok: false as const, message: "Solo el creador puede agregar jugadores." };
   }
 
   if (tournament.status !== "abierto") {
+    return { ok: false as const, message: "Solo puedes agregar jugadores mientras el torneo esta abierto." };
+  }
+
+  const profiles = await readProfileRecords();
+  const targetProfile = profiles.find((profile) => profile.email === normalizedTargetEmail);
+
+  if (!targetProfile) {
+    return { ok: false as const, message: "No encontramos ese jugador." };
+  }
+
+  if (tournament.playerEmails.includes(targetProfile.email)) {
+    return { ok: true as const, tournament, message: `${targetProfile.name} ya estaba anotado.` };
+  }
+
+  if (tournament.gender !== "mixto" && tournament.gender !== targetProfile.gender) {
     return {
       ok: false as const,
-      message: `Este torneo esta ${localTennisStore.formatTournamentStatus(tournament.status).toLowerCase()}. Ya no acepta inscripciones.`,
+      message: `Este torneo es ${localTennisStore.formatGender(tournament.gender)}. ${targetProfile.name} figura como ${localTennisStore.formatGender(targetProfile.gender)}.`,
     };
-  }
-
-  if (tournament.gender !== "mixto" && tournament.gender !== player.gender) {
-    return {
-      ok: false as const,
-      message: `Este torneo es ${localTennisStore.formatGender(tournament.gender)}. Tu genero actual es ${localTennisStore.formatGender(player.gender)}.`,
-    };
-  }
-
-  if (tournament.password !== password) {
-    return { ok: false as const, message: "Password de torneo incorrecto." };
-  }
-
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) {
-    return { ok: false as const, message: "Inicia sesion para anotarte." };
   }
 
   const { error } = await supabase.from("tournament_players").insert({
     tournament_id: tournamentId,
-    player_id: authData.user.id,
+    player_id: targetProfile.id,
   });
 
   if (error) {
@@ -995,9 +1011,9 @@ export async function joinTournament(
     ok: true as const,
     tournament: {
       ...tournament,
-      playerEmails: [...tournament.playerEmails, player.email],
+      playerEmails: [...tournament.playerEmails, targetProfile.email],
     },
-    message: "Ya estas anotado.",
+    message: `${targetProfile.name} fue agregado al torneo.`,
   };
 }
 

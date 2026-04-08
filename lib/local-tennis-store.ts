@@ -1128,7 +1128,7 @@ export function createTournament(input: CreateTournamentInput) {
   return {
     ok: true as const,
     tournament,
-    message: `Torneo creado: ${tournament.name}. Aun no estas anotado.`,
+    message: `Torneo creado: ${tournament.name}. Agrega jugadores desde la gestion del torneo.`,
   };
 }
 
@@ -1151,7 +1151,23 @@ export function deleteTournament(tournamentId: string, player: SessionPlayer) {
 }
 
 export function joinTournament(tournamentId: string, player: SessionPlayer, password: string) {
+  void tournamentId;
+  void player;
+  void password;
+
+  return {
+    ok: false as const,
+    message: "La inscripcion la realiza el creador del torneo.",
+  };
+}
+
+export function assignTournamentPlayer(
+  tournamentId: string,
+  actor: SessionPlayer,
+  targetEmail: string,
+) {
   const tournaments = readTournaments();
+  const players = readPlayers();
   const index = tournaments.findIndex((entry) => entry.id === tournamentId);
 
   if (index === -1) {
@@ -1160,37 +1176,39 @@ export function joinTournament(tournamentId: string, player: SessionPlayer, pass
 
   const tournament = tournaments[index];
 
-  if (tournament.playerEmails.includes(player.email)) {
-    return { ok: true as const, tournament, message: "Ya estabas anotado." };
+  if (tournament.creatorEmail !== actor.email) {
+    return { ok: false as const, message: "Solo el creador puede agregar jugadores." };
   }
 
   if (tournament.status !== "abierto") {
-    return {
-      ok: false as const,
-      message: `Este torneo esta ${formatTournamentStatus(tournament.status).toLowerCase()}. Ya no acepta inscripciones.`,
-    };
+    return { ok: false as const, message: "Solo puedes agregar jugadores mientras el torneo esta abierto." };
   }
 
-  if (tournament.gender !== "mixto" && tournament.gender !== player.gender) {
-    return {
-      ok: false as const,
-      message: `Este torneo es ${formatGender(tournament.gender)}. Tu genero actual es ${formatGender(player.gender)}.`,
-    };
+  const targetPlayer = players.find((player) => player.email === targetEmail.trim().toLowerCase());
+  if (!targetPlayer) {
+    return { ok: false as const, message: "No encontramos ese jugador." };
   }
 
-  if (tournament.password !== password) {
-    return { ok: false as const, message: "Password de torneo incorrecto." };
+  if (tournament.playerEmails.includes(targetPlayer.email)) {
+    return { ok: true as const, tournament, message: `${targetPlayer.name} ya estaba anotado.` };
+  }
+
+  if (tournament.gender !== "mixto" && tournament.gender !== targetPlayer.gender) {
+    return {
+      ok: false as const,
+      message: `Este torneo es ${formatGender(tournament.gender)}. ${targetPlayer.name} figura como ${formatGender(targetPlayer.gender)}.`,
+    };
   }
 
   const updatedTournament: Tournament = {
     ...tournament,
-    playerEmails: [...tournament.playerEmails, player.email],
+    playerEmails: [...tournament.playerEmails, targetPlayer.email],
   };
   const nextTournaments = [...tournaments];
   nextTournaments[index] = updatedTournament;
   saveTournaments(nextTournaments);
 
-  return { ok: true as const, tournament: updatedTournament, message: "Ya estas anotado." };
+  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} fue agregado al torneo.` };
 }
 
 export function updateTournamentStatus(
