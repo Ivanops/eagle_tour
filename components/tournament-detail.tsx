@@ -38,6 +38,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [players, setPlayers] = useState<RegisteredPlayer[]>([]);
   const [standings, setStandings] = useState<TournamentStandingRow[]>([]);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [joinNotice, setJoinNotice] = useState("");
   const [managementNotice, setManagementNotice] = useState("");
   const [joinNoticeTone, setJoinNoticeTone] = useState<NoticeTone>("success");
@@ -105,6 +106,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
 
     if (result.ok) {
       setPassword("");
+      setShowPassword(false);
       await refreshTournament();
     }
   }
@@ -256,15 +258,23 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
           <form className="auth-form" onSubmit={handleJoin}>
             <label>
               Password
-              <input
-                autoComplete="off"
-                className="masked-input"
-                name="tournament-access-code"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Password del torneo"
-                type="text"
-                value={password}
-              />
+              <span className="password-field">
+                <input
+                  autoComplete="off"
+                  name="tournament-access-code"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Password del torneo"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  className="password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? "Ocultar" : "Ver"}
+                </button>
+              </span>
             </label>
             <button className="primary-button submit-button" type="submit">
               Anotarme

@@ -309,8 +309,28 @@ select {
   border-color: rgba(11, 122, 83, 0.28);
 }
 
-.masked-input {
-  -webkit-text-security: disc;
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.48rem 0.7rem;
+  background: rgba(11, 122, 83, 0.1);
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-family: "Trebuchet MS", sans-serif;
+  font-size: 0.8rem;
 }
 
 .submit-button {

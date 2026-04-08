@@ -43,6 +43,7 @@ export function TournamentsHome() {
   const [level, setLevel] = useState("Intermedio");
   const [gender, setGender] = useState<TournamentGender>("mixto");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [filter, setFilter] = useState<TournamentFilter>("general");
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export function TournamentsHome() {
     setLevel("Intermedio");
     setGender("mixto");
     setPassword("");
+    setShowPassword(false);
     setShowCreate(false);
     setNoticeTone("success");
     setNotice(result.message);
@@ -276,15 +278,23 @@ export function TournamentsHome() {
             </label>
             <label>
               Password del torneo
-              <input
-                autoComplete="off"
-                className="masked-input"
-                name="tournament-access-code"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Password para anotarse"
-                type="text"
-                value={password}
-              />
+              <span className="password-field">
+                <input
+                  autoComplete="off"
+                  name="tournament-access-code"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Password para anotarse"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  className="password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? "Ocultar" : "Ver"}
+                </button>
+              </span>
             </label>
             <button className="primary-button submit-button" type="submit">
               Guardar torneo

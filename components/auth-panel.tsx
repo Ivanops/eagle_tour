@@ -31,6 +31,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [gender, setGender] = useState<PlayerGender | "">("");
   const [verificationInput, setVerificationInput] = useState("");
@@ -47,6 +48,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
   function resetForm(keepEmail = false) {
     setPassword("");
+    setShowPassword(false);
     setName("");
     setGender("");
     setVerificationInput("");
@@ -179,13 +181,22 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             </label>
             <label>
               Password
-              <input
-                autoComplete="current-password"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Tu password"
-                type="password"
-                value={password}
-              />
+              <span className="password-field">
+                <input
+                  autoComplete="current-password"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Tu password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  className="password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? "Ocultar" : "Ver"}
+                </button>
+              </span>
             </label>
             <button className="primary-button submit-button" type="submit">
               Entrar a mi cuenta
@@ -214,13 +225,22 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             </label>
             <label>
               Password
-              <input
-                autoComplete="new-password"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Crea tu password"
-                type="password"
-                value={password}
-              />
+              <span className="password-field">
+                <input
+                  autoComplete="new-password"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Crea tu password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  className="password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? "Ocultar" : "Ver"}
+                </button>
+              </span>
             </label>
             <label>
               Genero
