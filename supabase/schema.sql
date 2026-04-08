@@ -223,6 +223,20 @@ with check (
   )
 );
 
+drop policy if exists "Tournament creators can remove players" on public.tournament_players;
+create policy "Tournament creators can remove players"
+on public.tournament_players for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.tournaments
+    where tournaments.id = tournament_players.tournament_id
+      and tournaments.creator_id = auth.uid()
+      and tournaments.status = 'abierto'
+  )
+);
+
 drop policy if exists "Matches are readable by authenticated users" on public.matches;
 create policy "Matches are readable by authenticated users"
 on public.matches for select

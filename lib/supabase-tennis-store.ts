@@ -1017,6 +1017,59 @@ export async function assignTournamentPlayer(
   };
 }
 
+export async function removeTournamentPlayer(
+  tournamentId: string,
+  actor: SessionPlayer,
+  targetEmail: string,
+) {
+  requireSupabaseEnv();
+
+  const normalizedTargetEmail = targetEmail.trim().toLowerCase();
+  const tournament = (await readTournaments()).find((entry) => entry.id === tournamentId);
+
+  if (!tournament) {
+    return { ok: false as const, message: "No encontramos este torneo." };
+  }
+
+  if (tournament.creatorEmail !== actor.email) {
+    return { ok: false as const, message: "Solo el creador puede remover jugadores." };
+  }
+
+  if (tournament.status !== "abierto") {
+    return { ok: false as const, message: "Solo puedes remover jugadores mientras el torneo esta abierto." };
+  }
+
+  const profiles = await readProfileRecords();
+  const targetProfile = profiles.find((profile) => profile.email === normalizedTargetEmail);
+
+  if (!targetProfile) {
+    return { ok: false as const, message: "No encontramos ese jugador." };
+  }
+
+  if (!tournament.playerEmails.includes(targetProfile.email)) {
+    return { ok: true as const, tournament, message: `${targetProfile.name} no estaba anotado.` };
+  }
+
+  const { error } = await supabase
+    .from("tournament_players")
+    .delete()
+    .eq("tournament_id", tournamentId)
+    .eq("player_id", targetProfile.id);
+
+  if (error) {
+    return { ok: false as const, message: error.message };
+  }
+
+  return {
+    ok: true as const,
+    tournament: {
+      ...tournament,
+      playerEmails: tournament.playerEmails.filter((email) => email !== targetProfile.email),
+    },
+    message: `${targetProfile.name} fue removido del torneo.`,
+  };
+}
+
 async function getTournamentProfiles(tournament: Tournament) {
   const memberships = await readMembershipRecords();
   const profiles = await readProfileRecords();

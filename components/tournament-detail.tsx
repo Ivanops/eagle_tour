@@ -18,6 +18,7 @@ import {
   readTournamentPlayers,
   readTournaments,
   RegisteredPlayer,
+  removeTournamentPlayer,
   SessionPlayer,
   TennisMatch,
   Tournament,
@@ -100,6 +101,21 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     }
 
     const result = await assignTournamentPlayer(tournamentId, session, targetEmail);
+    setManagementNoticeTone(result.ok ? "success" : "error");
+    setManagementNotice(result.message);
+    setJoinNotice("");
+
+    if (result.ok) {
+      await refreshTournament();
+    }
+  }
+
+  async function handleRemovePlayer(targetEmail: string) {
+    if (!session) {
+      return;
+    }
+
+    const result = await removeTournamentPlayer(tournamentId, session, targetEmail);
     setManagementNoticeTone(result.ok ? "success" : "error");
     setManagementNotice(result.message);
     setJoinNotice("");
@@ -387,10 +403,21 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
           </div>
           <div className="stack-list">
             {players.length ? players.map((player) => (
-              <div className="info-card" key={player.email}>
-                <h3>{player.name}</h3>
-                <p>{player.email}</p>
-                <span>{formatGender(player.gender)}</span>
+              <div className="info-card admin-user-card" key={player.email}>
+                <div className="admin-user-main">
+                  <h3>{player.name}</h3>
+                  <p>{player.email}</p>
+                  <span>{formatGender(player.gender)}</span>
+                </div>
+                {isCreator && acceptsPlayers ? (
+                  <button
+                    className="danger-button inline-action"
+                    onClick={() => handleRemovePlayer(player.email)}
+                    type="button"
+                  >
+                    Remover
+                  </button>
+                ) : null}
               </div>
             )) : <p className="notice">Todavia no hay jugadores inscritos.</p>}
           </div>

@@ -1211,6 +1211,49 @@ export function assignTournamentPlayer(
   return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} fue agregado al torneo.` };
 }
 
+export function removeTournamentPlayer(
+  tournamentId: string,
+  actor: SessionPlayer,
+  targetEmail: string,
+) {
+  const tournaments = readTournaments();
+  const players = readPlayers();
+  const index = tournaments.findIndex((entry) => entry.id === tournamentId);
+
+  if (index === -1) {
+    return { ok: false as const, message: "No encontramos este torneo." };
+  }
+
+  const tournament = tournaments[index];
+
+  if (tournament.creatorEmail !== actor.email) {
+    return { ok: false as const, message: "Solo el creador puede remover jugadores." };
+  }
+
+  if (tournament.status !== "abierto") {
+    return { ok: false as const, message: "Solo puedes remover jugadores mientras el torneo esta abierto." };
+  }
+
+  const targetPlayer = players.find((player) => player.email === targetEmail.trim().toLowerCase());
+  if (!targetPlayer) {
+    return { ok: false as const, message: "No encontramos ese jugador." };
+  }
+
+  if (!tournament.playerEmails.includes(targetPlayer.email)) {
+    return { ok: true as const, tournament, message: `${targetPlayer.name} no estaba anotado.` };
+  }
+
+  const updatedTournament: Tournament = {
+    ...tournament,
+    playerEmails: tournament.playerEmails.filter((email) => email !== targetPlayer.email),
+  };
+  const nextTournaments = [...tournaments];
+  nextTournaments[index] = updatedTournament;
+  saveTournaments(nextTournaments);
+
+  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} fue removido del torneo.` };
+}
+
 export function updateTournamentStatus(
   tournamentId: string,
   player: SessionPlayer,
