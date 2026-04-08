@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
+  canCreateTournaments,
   createTournament,
   deleteTournament,
   formatGender,
@@ -17,7 +18,7 @@ import {
   TennisMatch,
   Tournament,
   TournamentGender,
-} from "../lib/mock-tennis-store";
+} from "../lib/tennis-store";
 
 type TournamentFilter = "general" | "created" | "joined";
 type NoticeTone = "success" | "error";
@@ -45,22 +46,46 @@ export function TournamentsHome() {
   const [filter, setFilter] = useState<TournamentFilter>("general");
 
   useEffect(() => {
-    setSession(readSession());
-    setTournaments(readTournaments());
-    setMatches(readMatches());
+    let isMounted = true;
+
+    async function loadData() {
+      const [nextTournaments, nextMatches] = await Promise.all([
+        readTournaments(),
+        readMatches(),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setSession(readSession());
+      setTournaments(nextTournaments);
+      setMatches(nextMatches);
+    }
+
+    void loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  function refreshData() {
-    setTournaments(readTournaments());
-    setMatches(readMatches());
+  async function refreshData() {
+    const [nextTournaments, nextMatches] = await Promise.all([
+      readTournaments(),
+      readMatches(),
+    ]);
+    setTournaments(nextTournaments);
+    setMatches(nextMatches);
   }
 
-  function handleAuthenticated(nextSession: SessionPlayer) {
+  async function handleAuthenticated(nextSession: SessionPlayer) {
+    setSession(readSession());
     setSession(nextSession);
-    refreshData();
+    await refreshData();
   }
 
-  function handleCreateTournament(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateTournament(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!session) {
@@ -81,7 +106,7 @@ export function TournamentsHome() {
       return;
     }
 
-    const result = createTournament({
+    const result = await createTournament({
       name,
       date,
       location,
@@ -94,7 +119,7 @@ export function TournamentsHome() {
     if (!result.ok) {
       setNoticeTone("error");
       setNotice(result.message);
-      refreshData();
+      await refreshData();
       return;
     }
 
@@ -107,7 +132,7 @@ export function TournamentsHome() {
     setShowCreate(false);
     setNoticeTone("success");
     setNotice(result.message);
-    refreshData();
+    await refreshData();
   }
 
   if (!session) {
@@ -139,9 +164,11 @@ export function TournamentsHome() {
   const createdTournamentCount = tournaments.filter(
     (tournament) => tournament.creatorEmail === session.email,
   ).length;
-  const canCreateTournament = createdTournamentCount < MAX_TOURNAMENTS_PER_CREATOR;
+  const hasCreationPermission = canCreateTournaments(session);
+  const canCreateTournament =
+    hasCreationPermission && createdTournamentCount < MAX_TOURNAMENTS_PER_CREATOR;
 
-  function handleDeleteTournament(tournamentId: string, tournamentName: string) {
+  async function handleDeleteTournament(tournamentId: string, tournamentName: string) {
     if (!session) {
       setNoticeTone("error");
       setNotice("Inicia sesion para borrar torneos.");
@@ -152,12 +179,12 @@ export function TournamentsHome() {
       return;
     }
 
-    const result = deleteTournament(tournamentId, session);
+    const result = await deleteTournament(tournamentId, session);
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
     if (result.ok) {
-      refreshData();
+      await refreshData();
     }
   }
 
@@ -182,7 +209,9 @@ export function TournamentsHome() {
         </button>
         {!canCreateTournament ? (
           <p className="field-help">
-            Ya creaste {MAX_TOURNAMENTS_PER_CREATOR} torneos. Borra uno para crear otro.
+            {hasCreationPermission
+              ? `Ya creaste ${MAX_TOURNAMENTS_PER_CREATOR} torneos. Borra uno para crear otro.`
+              : "Necesitas permiso de un super usuario para crear torneos."}
           </p>
         ) : null}
       </section>
@@ -191,7 +220,7 @@ export function TournamentsHome() {
         <section className="panel create-panel">
           <div className="panel-header">
             <p className="section-kicker">Nuevo torneo</p>
-            <h2>Crear torneo mock</h2>
+            <h2>Crear torneo</h2>
           </div>
           <form className="auth-form tournament-form" onSubmit={handleCreateTournament}>
             <label>

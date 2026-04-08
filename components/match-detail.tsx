@@ -18,7 +18,7 @@ import {
   Tournament,
   updateMatchSetGames,
   updateMatchStatus,
-} from "../lib/mock-tennis-store";
+} from "../lib/tennis-store";
 
 type MatchDetailProps = {
   matchId: string;
@@ -34,17 +34,21 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
   const [notice, setNotice] = useState("");
   const [noticeTone, setNoticeTone] = useState<NoticeTone>("success");
 
-  function refreshMatch() {
-    const tournaments = readTournaments();
+  async function refreshMatch() {
+    const [tournaments, matches, players] = await Promise.all([
+      readTournaments(),
+      readMatches(),
+      readPlayers(),
+    ]);
     const currentTournament = tournaments.find((entry) => entry.matchIds.includes(matchId)) ?? null;
     const currentMatch = currentTournament
-      ? readMatches().find((entry) => entry.id === matchId) ?? null
+      ? matches.find((entry) => entry.id === matchId) ?? null
       : null;
     setMatch(currentMatch);
 
     if (currentMatch && currentTournament) {
       setTournament(currentTournament);
-      setMatchPlayers(readPlayers().filter((player) => currentMatch.playerEmails.includes(player.email)));
+      setMatchPlayers(players.filter((player) => currentMatch.playerEmails.includes(player.email)));
     } else {
       setTournament(null);
       setMatchPlayers([]);
@@ -53,62 +57,77 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
 
   useEffect(() => {
     setSession(readSession());
-    refreshMatch();
+    void refreshMatch();
   }, [matchId]);
 
-  function handleAcceptResult() {
+  async function handleAcceptResult() {
     if (!session) {
       return;
     }
 
-    const result = updateMatchStatus(matchId, session, "finalizado");
+    const result = await updateMatchStatus(matchId, session, "finalizado");
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
     if (result.ok) {
-      refreshMatch();
+      await refreshMatch();
     }
   }
 
-  function handleUpdateSetGames(setId: string, pair: "pairA" | "pairB", games: number) {
+  async function handleUpdateSetGames(setId: string, pair: "pairA" | "pairB", games: number) {
     if (!session) {
       return;
     }
 
-    const result = updateMatchSetGames(matchId, session, setId, pair, games);
+    const result = await updateMatchSetGames(matchId, session, setId, pair, games);
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
     if (result.ok) {
-      refreshMatch();
+      await refreshMatch();
     }
   }
 
-  function handleAddSet() {
+  function handleAdjustSetGames(
+    setId: string,
+    pair: "pairA" | "pairB",
+    currentGames: number,
+    direction: -1 | 1,
+  ) {
+    const nextGames = Math.min(99, Math.max(0, currentGames + direction));
+
+    if (nextGames === currentGames) {
+      return;
+    }
+
+    void handleUpdateSetGames(setId, pair, nextGames);
+  }
+
+  async function handleAddSet() {
     if (!session) {
       return;
     }
 
-    const result = addMatchSet(matchId, session);
+    const result = await addMatchSet(matchId, session);
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
     if (result.ok) {
-      refreshMatch();
+      await refreshMatch();
     }
   }
 
-  function handleDeleteSet(setId: string) {
+  async function handleDeleteSet(setId: string) {
     if (!session) {
       return;
     }
 
-    const result = deleteMatchSet(matchId, session, setId);
+    const result = await deleteMatchSet(matchId, session, setId);
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
     if (result.ok) {
-      refreshMatch();
+      await refreshMatch();
     }
   }
 
@@ -135,12 +154,11 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
     );
   }
 
-  const isCreator = tournament.creatorEmail === session.email;
   const isMatchPlayer = match.playerEmails.includes(session.email);
   const hasAcceptedResult = match.finalizationAcceptedBy.includes(session.email);
   const canAcceptResult =
     isMatchPlayer && !hasAcceptedResult && match.status !== "finalizado" && tournament.status !== "finalizado";
-  const canEditSets = isCreator && match.status !== "finalizado" && tournament.status !== "finalizado";
+  const canEditSets = isMatchPlayer && match.status !== "finalizado" && tournament.status !== "finalizado";
 
   return (
     <main className="page-shell">
@@ -177,32 +195,50 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
               {match.sets.map((set, index) => (
                 <div className="set-row" key={set.id}>
                   <strong>Set {index + 1}</strong>
-                  <label>
-                    {match.playerA}
-                    <input
-                      disabled={!canEditSets}
-                      max={99}
-                      min={0}
-                      onChange={(event) =>
-                        handleUpdateSetGames(set.id, "pairA", event.target.valueAsNumber)
-                      }
-                      type="number"
-                      value={set.pairAGames}
-                    />
-                  </label>
-                  <label>
-                    {match.playerB}
-                    <input
-                      disabled={!canEditSets}
-                      max={99}
-                      min={0}
-                      onChange={(event) =>
-                        handleUpdateSetGames(set.id, "pairB", event.target.valueAsNumber)
-                      }
-                      type="number"
-                      value={set.pairBGames}
-                    />
-                  </label>
+                  <div className="set-score-control" aria-label={`${match.playerA}, set ${index + 1}`}>
+                    <span>{match.playerA}</span>
+                    <div className="score-stepper">
+                      <button
+                        aria-label={`Restar game a ${match.playerA} en el set ${index + 1}`}
+                        disabled={!canEditSets || set.pairAGames <= 0}
+                        onClick={() => handleAdjustSetGames(set.id, "pairA", set.pairAGames, -1)}
+                        type="button"
+                      >
+                        -
+                      </button>
+                      <strong>{set.pairAGames}</strong>
+                      <button
+                        aria-label={`Sumar game a ${match.playerA} en el set ${index + 1}`}
+                        disabled={!canEditSets || set.pairAGames >= 99}
+                        onClick={() => handleAdjustSetGames(set.id, "pairA", set.pairAGames, 1)}
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="set-score-control" aria-label={`${match.playerB}, set ${index + 1}`}>
+                    <span>{match.playerB}</span>
+                    <div className="score-stepper">
+                      <button
+                        aria-label={`Restar game a ${match.playerB} en el set ${index + 1}`}
+                        disabled={!canEditSets || set.pairBGames <= 0}
+                        onClick={() => handleAdjustSetGames(set.id, "pairB", set.pairBGames, -1)}
+                        type="button"
+                      >
+                        -
+                      </button>
+                      <strong>{set.pairBGames}</strong>
+                      <button
+                        aria-label={`Sumar game a ${match.playerB} en el set ${index + 1}`}
+                        disabled={!canEditSets || set.pairBGames >= 99}
+                        onClick={() => handleAdjustSetGames(set.id, "pairB", set.pairBGames, 1)}
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
                   {canEditSets ? (
                     <button
                       className="secondary-button inline-action"

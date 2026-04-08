@@ -5,6 +5,7 @@ export type RegisteredPlayer = {
   verificationCode: string;
   name: string;
   gender: PlayerGender;
+  role: PlayerRole;
 };
 
 export type SessionPlayer = {
@@ -12,9 +13,11 @@ export type SessionPlayer = {
   verified: boolean;
   name: string;
   gender: PlayerGender;
+  role: PlayerRole;
 };
 
 export type PlayerGender = "femenino" | "masculino";
+export type PlayerRole = "player" | "organizer" | "super";
 
 export type TournamentGender = PlayerGender | "mixto";
 export type TournamentStatus = "abierto" | "cerrado" | "finalizado";
@@ -85,8 +88,8 @@ const KEYS = {
   matches: "tennis-app.matches",
 } as const;
 
-export const MAX_TOURNAMENTS_PER_CREATOR = 3;
-const DEMO_DATA_VERSION = "standings-demo-v1";
+export const MAX_TOURNAMENTS_PER_CREATOR = 10;
+const DEMO_DATA_VERSION = "partial-standings-demo-v1";
 
 const defaultPlayers: RegisteredPlayer[] = [
   {
@@ -96,6 +99,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "482913",
     name: "Lucia Navarro",
     gender: "femenino",
+    role: "super",
   },
   {
     email: "sofia@tennisapp.com",
@@ -104,6 +108,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "718204",
     name: "Sofia Vega",
     gender: "femenino",
+    role: "player",
   },
   {
     email: "emma@tennisapp.com",
@@ -112,6 +117,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "319845",
     name: "Emma Castillo",
     gender: "femenino",
+    role: "player",
   },
   {
     email: "valentina@tennisapp.com",
@@ -120,6 +126,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "904112",
     name: "Valentina Ruiz",
     gender: "femenino",
+    role: "player",
   },
   {
     email: "mateo@tennisapp.com",
@@ -128,6 +135,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "562901",
     name: "Mateo Rios",
     gender: "masculino",
+    role: "organizer",
   },
   {
     email: "diego@tennisapp.com",
@@ -136,6 +144,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "119362",
     name: "Diego Torres",
     gender: "masculino",
+    role: "player",
   },
   {
     email: "tomas@tennisapp.com",
@@ -144,6 +153,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "680455",
     name: "Tomas Herrera",
     gender: "masculino",
+    role: "player",
   },
   {
     email: "bruno@tennisapp.com",
@@ -152,6 +162,7 @@ const defaultPlayers: RegisteredPlayer[] = [
     verificationCode: "451708",
     name: "Bruno Silva",
     gender: "masculino",
+    role: "player",
   },
 ];
 
@@ -190,7 +201,11 @@ const defaultTournaments: Tournament[] = [
       "mateo@tennisapp.com",
       "diego@tennisapp.com",
     ],
-    matchIds: ["barcelona-open-series-match-1"],
+    matchIds: [
+      "barcelona-open-series-match-1",
+      "barcelona-open-series-match-2",
+      "barcelona-open-series-match-3",
+    ],
   },
   {
     id: "roma-mixed-finals",
@@ -231,13 +246,55 @@ const defaultMatches: TennisMatch[] = [
       "lucia@tennisapp.com",
       "mateo@tennisapp.com",
       "sofia@tennisapp.com",
+      "diego@tennisapp.com",
     ],
-    status: "por_jugar",
+    status: "finalizado",
     score: "6-4, 6-3",
     sets: [
       { id: "set-1", pairAGames: 6, pairBGames: 4 },
       { id: "set-2", pairAGames: 6, pairBGames: 3 },
     ],
+  },
+  {
+    id: "barcelona-open-series-match-2",
+    tournamentId: "barcelona-open-series",
+    round: "Partido 2",
+    court: "Cancha 3",
+    startsAt: "21 Apr 2026",
+    playerA: "Lucia Navarro / Sofia Vega",
+    playerB: "Mateo Rios / Diego Torres",
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "sofia@tennisapp.com",
+      "mateo@tennisapp.com",
+      "diego@tennisapp.com",
+    ],
+    finalizationAcceptedBy: [],
+    status: "por_jugar",
+    score: "4-6, 5-4",
+    sets: [
+      { id: "set-1", pairAGames: 4, pairBGames: 6 },
+      { id: "set-2", pairAGames: 5, pairBGames: 4 },
+    ],
+  },
+  {
+    id: "barcelona-open-series-match-3",
+    tournamentId: "barcelona-open-series",
+    round: "Partido 3",
+    court: "Cancha 4",
+    startsAt: "21 Apr 2026",
+    playerA: "Lucia Navarro / Diego Torres",
+    playerB: "Sofia Vega / Mateo Rios",
+    playerEmails: [
+      "lucia@tennisapp.com",
+      "diego@tennisapp.com",
+      "sofia@tennisapp.com",
+      "mateo@tennisapp.com",
+    ],
+    finalizationAcceptedBy: [],
+    status: "por_jugar",
+    score: "Por jugarse",
+    sets: [{ id: "set-1", pairAGames: 0, pairBGames: 0 }],
   },
   {
     id: "roma-mixed-finals-match-1",
@@ -311,6 +368,7 @@ function ensureDemoData() {
     verified: true,
     name: "Lucia Navarro",
     gender: "femenino",
+    role: "super",
   } satisfies SessionPlayer);
   window.localStorage.setItem(KEYS.demoVersion, DEMO_DATA_VERSION);
 }
@@ -331,6 +389,14 @@ function makeVerificationCode() {
 
 function normalizeGender(gender: unknown): PlayerGender {
   return gender === "masculino" || gender === "femenino" ? gender : "femenino";
+}
+
+function normalizePlayerRole(role: unknown): PlayerRole {
+  return role === "super" || role === "organizer" ? role : "player";
+}
+
+function canPlayerCreateTournaments(player: Pick<SessionPlayer, "role">) {
+  return player.role === "super" || player.role === "organizer";
 }
 
 function normalizeTournamentGender(gender: unknown): TournamentGender {
@@ -630,8 +696,8 @@ function getTournamentStatusTransitionRestriction(
     return "Un torneo abierto solo puede cerrarse.";
   }
 
-  if (tournament.status === "cerrado" && nextStatus !== "abierto" && nextStatus !== "finalizado") {
-    return "Un torneo cerrado solo puede reabrirse o finalizarse.";
+  if (tournament.status === "cerrado" && nextStatus !== "finalizado") {
+    return "Un torneo cerrado solo puede finalizarse cuando todos sus partidos esten finalizados.";
   }
 
   if (tournament.status === nextStatus) {
@@ -662,6 +728,20 @@ export function formatGender(gender: TournamentGender) {
   return labels[gender];
 }
 
+export function formatPlayerRole(role: PlayerRole) {
+  const labels: Record<PlayerRole, string> = {
+    player: "Jugador",
+    organizer: "Creador de torneos",
+    super: "Super usuario",
+  };
+
+  return labels[role];
+}
+
+export function canCreateTournaments(player: Pick<SessionPlayer, "role">) {
+  return canPlayerCreateTournaments(player);
+}
+
 export function formatTournamentStatus(status: TournamentStatus) {
   const labels: Record<TournamentStatus, string> = {
     abierto: "Abierto",
@@ -687,6 +767,7 @@ export function readPlayers(): RegisteredPlayer[] {
   const normalizedPlayers = players.map((player) => ({
     ...player,
     gender: normalizeGender(player.gender),
+    role: normalizePlayerRole(player.role),
   }));
 
   if (hasStorage()) {
@@ -716,13 +797,24 @@ export function readSession(): SessionPlayer | null {
   const normalizedSession = {
     ...session,
     gender: normalizeGender(session.gender),
+    role: normalizePlayerRole(session.role),
   };
+  const matchingPlayer = readPlayers().find((player) => player.email === normalizedSession.email);
+  const currentSession = matchingPlayer
+    ? {
+        email: matchingPlayer.email,
+        verified: matchingPlayer.verified,
+        name: matchingPlayer.name,
+        gender: matchingPlayer.gender,
+        role: matchingPlayer.role,
+      }
+    : normalizedSession;
 
   if (hasStorage()) {
-    saveSession(normalizedSession);
+    saveSession(currentSession);
   }
 
-  return normalizedSession;
+  return currentSession;
 }
 
 export function saveSession(player: SessionPlayer | null) {
@@ -924,6 +1016,7 @@ export function createPlayer(name: string, email: string, password: string, gend
     verificationCode,
     name: name.trim(),
     gender,
+    role: "player",
   };
 
   savePlayers([...players, player]);
@@ -957,6 +1050,7 @@ export function verifyPlayerEmail(email: string, code: string) {
     verified: true,
     name: updatedPlayer.name,
     gender: updatedPlayer.gender,
+    role: updatedPlayer.role,
   };
   saveSession(session);
 
@@ -984,6 +1078,7 @@ export function loginPlayer(email: string, password: string) {
     verified: player.verified,
     name: player.name,
     gender: player.gender,
+    role: player.role,
   };
   saveSession(session);
 
@@ -992,6 +1087,14 @@ export function loginPlayer(email: string, password: string) {
 
 export function createTournament(input: CreateTournamentInput) {
   const tournaments = readTournaments();
+
+  if (!canPlayerCreateTournaments(input.creator)) {
+    return {
+      ok: false as const,
+      message: "Necesitas permiso de un super usuario para crear torneos.",
+    };
+  }
+
   const creatorTournamentCount = tournaments.filter(
     (tournament) => tournament.creatorEmail === input.creator.email,
   ).length;
@@ -1129,12 +1232,6 @@ export function updateTournamentStatus(
     saveMatches(nextMatches);
   }
 
-  if (status === "abierto") {
-    nextMatches = matches.filter((match) => match.tournamentId !== tournament.id);
-    matchIds = [];
-    saveMatches(nextMatches);
-  }
-
   nextTournaments[index] = {
     ...tournament,
     status,
@@ -1239,8 +1336,8 @@ export function updateMatchSetGames(
     return { ok: false as const, message: "No encontramos el torneo de este partido." };
   }
 
-  if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede editar los sets del partido." };
+  if (!match.playerEmails.includes(player.email)) {
+    return { ok: false as const, message: "Solo los jugadores de este partido pueden editar los sets." };
   }
 
   if (tournament.status === "finalizado") {
@@ -1251,6 +1348,7 @@ export function updateMatchSetGames(
     return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
   }
 
+  const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
   const nextSets = match.sets.map((set) =>
     set.id === setId
       ? {
@@ -1270,7 +1368,13 @@ export function updateMatchSetGames(
   nextMatches[matchIndex] = updatedMatch;
   saveMatches(nextMatches);
 
-  return { ok: true as const, match: updatedMatch, message: "Set actualizado." };
+  return {
+    ok: true as const,
+    match: updatedMatch,
+    message: hadAcceptedResults
+      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
+      : "Set actualizado.",
+  };
 }
 
 export function addMatchSet(matchId: string, player: SessionPlayer) {
@@ -1289,8 +1393,8 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
     return { ok: false as const, message: "No encontramos el torneo de este partido." };
   }
 
-  if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede agregar sets al partido." };
+  if (!match.playerEmails.includes(player.email)) {
+    return { ok: false as const, message: "Solo los jugadores de este partido pueden agregar sets." };
   }
 
   if (tournament.status === "finalizado") {
@@ -1305,6 +1409,7 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
     return { ok: false as const, message: "Un partido puede tener hasta 5 sets." };
   }
 
+  const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
   const nextSets = [...match.sets, makeDefaultSet(match.sets.length + 1)];
   const updatedMatch = {
     ...match,
@@ -1317,7 +1422,13 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
   nextMatches[matchIndex] = updatedMatch;
   saveMatches(nextMatches);
 
-  return { ok: true as const, match: updatedMatch, message: "Set agregado." };
+  return {
+    ok: true as const,
+    match: updatedMatch,
+    message: hadAcceptedResults
+      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
+      : "Set agregado.",
+  };
 }
 
 export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: string) {
@@ -1336,8 +1447,8 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
     return { ok: false as const, message: "No encontramos el torneo de este partido." };
   }
 
-  if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede borrar sets del partido." };
+  if (!match.playerEmails.includes(player.email)) {
+    return { ok: false as const, message: "Solo los jugadores de este partido pueden borrar sets." };
   }
 
   if (tournament.status === "finalizado") {
@@ -1352,6 +1463,7 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
     return { ok: false as const, message: "El partido debe tener al menos 1 set." };
   }
 
+  const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
   const nextSets = match.sets
     .filter((set) => set.id !== setId)
     .map((set, index) => ({
@@ -1374,7 +1486,13 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
   nextMatches[matchIndex] = updatedMatch;
   saveMatches(nextMatches);
 
-  return { ok: true as const, match: updatedMatch, message: "Set borrado." };
+  return {
+    ok: true as const,
+    match: updatedMatch,
+    message: hadAcceptedResults
+      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
+      : "Set borrado.",
+  };
 }
 
 export function updatePlayerProfile(email: string, input: { name: string; gender: PlayerGender }) {
@@ -1409,4 +1527,54 @@ export function updatePlayerProfile(email: string, input: { name: string; gender
   }
 
   return { ok: true as const, player: updatedPlayer, message: "Perfil actualizado." };
+}
+
+export function updateTournamentCreationPermission(
+  targetEmail: string,
+  actor: SessionPlayer,
+  canCreate: boolean,
+) {
+  if (actor.role !== "super") {
+    return { ok: false as const, message: "Solo un super usuario puede cambiar permisos." };
+  }
+
+  const players = readPlayers();
+  const index = players.findIndex((player) => player.email === targetEmail.trim().toLowerCase());
+
+  if (index === -1) {
+    return { ok: false as const, message: "No encontramos este jugador." };
+  }
+
+  const player = players[index];
+
+  if (player.role === "super") {
+    return { ok: false as const, message: "No puedes cambiar el permiso de otro super usuario." };
+  }
+
+  const updatedPlayer: RegisteredPlayer = {
+    ...player,
+    role: canCreate ? "organizer" : "player",
+  };
+  const nextPlayers = [...players];
+  nextPlayers[index] = updatedPlayer;
+  savePlayers(nextPlayers);
+
+  const currentSession = readSession();
+  if (currentSession?.email === updatedPlayer.email) {
+    saveSession({
+      email: updatedPlayer.email,
+      verified: updatedPlayer.verified,
+      name: updatedPlayer.name,
+      gender: updatedPlayer.gender,
+      role: updatedPlayer.role,
+    });
+  }
+
+  return {
+    ok: true as const,
+    player: updatedPlayer,
+    message: canCreate
+      ? `${updatedPlayer.name} ahora puede crear torneos.`
+      : `${updatedPlayer.name} ya no puede crear torneos.`,
+  };
 }

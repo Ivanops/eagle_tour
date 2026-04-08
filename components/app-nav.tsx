@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "../lib/router";
-import { SessionPlayer, saveSession } from "../lib/mock-tennis-store";
+import { SessionPlayer, saveSession } from "../lib/tennis-store";
 
 type AppNavProps = {
   session: SessionPlayer;
@@ -22,6 +22,7 @@ export function AppNav({ session, onLogout }: AppNavProps) {
       <nav>
         <Link href="/">Torneos</Link>
         <Link href="/jugador">Jugador</Link>
+        {session.role === "super" ? <Link href="/admin/usuarios">Usuarios</Link> : null}
       </nav>
       <div className="nav-player">
         <span>{session.name}</span>

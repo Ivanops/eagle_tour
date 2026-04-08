@@ -425,6 +425,36 @@ select {
   color: var(--muted);
 }
 
+.admin-user-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.admin-user-main {
+  min-width: 0;
+}
+
+.admin-user-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-user-meta span {
+  border: 1px solid rgba(11, 122, 83, 0.14);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  color: var(--primary-dark);
+  font-family: "Trebuchet MS", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.admin-user-action {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .player-card,
 .match-row,
 .ranking-row {
@@ -685,7 +715,7 @@ button {
   align-items: end;
 }
 
-.set-row label {
+.set-score-control {
   display: grid;
   gap: 0.35rem;
   color: var(--muted);
@@ -693,13 +723,47 @@ button {
   font-size: 0.85rem;
 }
 
-.set-row input {
+.set-score-control > span {
+  min-width: 0;
+}
+
+.score-stepper {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(2.75rem, 1fr) 2.75rem;
+  align-items: center;
+  min-height: 3rem;
   width: 100%;
   border: 1px solid rgba(29, 42, 31, 0.12);
   border-radius: 12px;
-  padding: 0.7rem;
   background: rgba(255, 255, 255, 0.92);
   color: var(--text);
+  overflow: hidden;
+}
+
+.score-stepper button {
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: rgba(11, 122, 83, 0.08);
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-family: "Trebuchet MS", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.score-stepper button:disabled {
+  color: rgba(29, 42, 31, 0.28);
+  cursor: not-allowed;
+}
+
+.score-stepper strong {
+  display: grid;
+  min-width: 0;
+  height: 100%;
+  place-items: center;
+  color: var(--text);
+  font-size: 1.1rem;
 }
 
 .match-player-list {
@@ -824,6 +888,15 @@ button {
   .app-nav {
     grid-template-columns: 1fr auto auto;
     align-items: center;
+  }
+
+  .admin-user-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .admin-user-action {
+    justify-content: flex-end;
   }
 
   .tournament-list {

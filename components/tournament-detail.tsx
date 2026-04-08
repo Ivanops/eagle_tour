@@ -23,7 +23,7 @@ import {
   TournamentStandingRow,
   TournamentStatus,
   updateTournamentStatus,
-} from "../lib/mock-tennis-store";
+} from "../lib/tennis-store";
 
 type TournamentDetailProps = {
   tournamentId: string;
@@ -44,41 +44,51 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [managementNoticeTone, setManagementNoticeTone] = useState<NoticeTone>("success");
 
   useEffect(() => {
-    setSession(readSession());
-    const currentTournament = readTournaments().find((entry) => entry.id === tournamentId) ?? null;
-    setTournament(currentTournament);
-    if (currentTournament) {
-      setPlayers(readTournamentPlayers(currentTournament));
-      setStandings(calculateTournamentStandings(currentTournament));
-    } else {
-      setPlayers([]);
-      setStandings([]);
+    let isMounted = true;
+
+    async function loadTournament() {
+      setSession(readSession());
+      await refreshTournament(isMounted);
     }
-    setMatches(
-      currentTournament
-        ? readMatches().filter((match) => currentTournament.matchIds.includes(match.id))
-        : [],
-    );
+
+    void loadTournament();
+
+    return () => {
+      isMounted = false;
+    };
   }, [tournamentId]);
 
-  function refreshTournament() {
-    const currentTournament = readTournaments().find((entry) => entry.id === tournamentId) ?? null;
+  async function refreshTournament(isMounted = true) {
+    const [tournaments, allMatches] = await Promise.all([readTournaments(), readMatches()]);
+    const currentTournament = tournaments.find((entry) => entry.id === tournamentId) ?? null;
+
+    if (!isMounted) {
+      return;
+    }
+
     setTournament(currentTournament);
     if (currentTournament) {
-      setPlayers(readTournamentPlayers(currentTournament));
-      setStandings(calculateTournamentStandings(currentTournament));
+      const tournamentMatches = allMatches.filter((match) => currentTournament.matchIds.includes(match.id));
+      const [tournamentPlayers, tournamentStandings] = await Promise.all([
+        readTournamentPlayers(currentTournament),
+        calculateTournamentStandings(currentTournament, tournamentMatches),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setPlayers(tournamentPlayers);
+      setStandings(tournamentStandings);
+      setMatches(tournamentMatches);
     } else {
       setPlayers([]);
       setStandings([]);
+      setMatches([]);
     }
-    setMatches(
-      currentTournament
-        ? readMatches().filter((match) => currentTournament.matchIds.includes(match.id))
-        : [],
-    );
   }
 
-  function handleJoin(event: FormEvent<HTMLFormElement>) {
+  async function handleJoin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!session) {
@@ -88,33 +98,33 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       return;
     }
 
-    const result = joinTournament(tournamentId, session, password);
+    const result = await joinTournament(tournamentId, session, password);
     setJoinNoticeTone(result.ok ? "success" : "error");
     setJoinNotice(result.message);
     setManagementNotice("");
 
     if (result.ok) {
       setPassword("");
-      refreshTournament();
+      await refreshTournament();
     }
   }
 
-  function handleUpdateStatus(nextStatus: TournamentStatus) {
+  async function handleUpdateStatus(nextStatus: TournamentStatus) {
     if (!session) {
       return;
     }
 
-    const result = updateTournamentStatus(tournamentId, session, nextStatus);
+    const result = await updateTournamentStatus(tournamentId, session, nextStatus);
     setManagementNoticeTone(result.ok ? "success" : "error");
     setManagementNotice(result.message);
     setJoinNotice("");
 
     if (result.ok) {
-      refreshTournament();
+      await refreshTournament();
     }
   }
 
-  function handleDeleteTournament() {
+  async function handleDeleteTournament() {
     if (!session || !tournament) {
       return;
     }
@@ -123,7 +133,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       return;
     }
 
-    const result = deleteTournament(tournament.id, session);
+    const result = await deleteTournament(tournament.id, session);
     setManagementNoticeTone(result.ok ? "success" : "error");
     setManagementNotice(result.message);
     setJoinNotice("");
@@ -164,10 +174,14 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const closeRestriction =
     tournament.status === "abierto" ? getTournamentCloseRestriction(tournament) : "";
   const canClose = tournament.status === "abierto";
-  const canReopen = tournament.status === "cerrado";
   const canFinish = tournament.status === "cerrado";
   const hasFinalizedMatches = matches.some((match) => match.status === "finalizado");
-  const canSeeStandings = tournament.status === "finalizado" || hasFinalizedMatches;
+  const standingsAreFinal = tournament.status === "finalizado";
+  const displayedStandings = standingsAreFinal
+    ? standings
+    : standings.filter((row) => row.email === session.email);
+  const canSeeStandings =
+    standingsAreFinal || (isJoined && hasFinalizedMatches && displayedStandings.length > 0);
 
   return (
     <main className="page-shell">
@@ -206,14 +220,6 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
               Cerrar torneo
             </button>
             <button
-              className="secondary-button submit-button"
-              disabled={!canReopen}
-              onClick={() => handleUpdateStatus("abierto")}
-              type="button"
-            >
-              Reabrir torneo
-            </button>
-            <button
               className="primary-button submit-button"
               disabled={!canFinish}
               onClick={() => handleUpdateStatus("finalizado")}
@@ -246,7 +252,6 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
               Tu genero: {formatGender(session.gender)}. Torneo:{" "}
               {formatGender(tournament.gender)}.
             </p>
-            <p>Password mock para probar: {tournament.password}</p>
           </div>
           <form className="auth-form" onSubmit={handleJoin}>
             <label>
@@ -290,8 +295,12 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
         <section className="panel standings-panel">
           <div className="panel-header">
             <p className="section-kicker">Resultados</p>
-            <h2>Tabla del torneo</h2>
-            <p>Ordenada por puntos, sets a favor y games a favor.</p>
+            <h2>{standingsAreFinal ? "Tabla del torneo" : "Tu tabla parcial"}</h2>
+            <p>
+              {standingsAreFinal
+                ? "Ordenada por puntos, sets a favor y games a favor."
+                : "Calculada solo con tus partidos finalizados."}
+            </p>
           </div>
           <div className="table-scroll">
             <table className="standings-table">
@@ -308,7 +317,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
                 </tr>
               </thead>
               <tbody>
-                {standings.map((row) => (
+                {displayedStandings.map((row) => (
                   <tr key={row.email}>
                     <td>{row.name}</td>
                     <td>{row.points}</td>

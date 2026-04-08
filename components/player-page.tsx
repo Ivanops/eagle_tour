@@ -6,6 +6,7 @@ import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
   formatGender,
+  formatPlayerRole,
   formatTournamentStatus,
   PlayerGender,
   readMatches,
@@ -15,7 +16,7 @@ import {
   TennisMatch,
   Tournament,
   updatePlayerProfile,
-} from "../lib/mock-tennis-store";
+} from "../lib/tennis-store";
 
 type NoticeTone = "success" | "error";
 
@@ -29,36 +30,59 @@ export function PlayerPage() {
   const [notice, setNotice] = useState("");
   const [noticeTone, setNoticeTone] = useState<NoticeTone>("success");
 
+  async function loadPlayerData(currentSession: SessionPlayer) {
+    setPlayerName(currentSession.name);
+    setGender(currentSession.gender);
+    const [allTournaments, allMatches] = await Promise.all([readTournaments(), readMatches()]);
+    const joinedTournaments = allTournaments.filter((tournament) =>
+      tournament.playerEmails.includes(currentSession.email),
+    );
+    const joinedMatchIds = new Set(
+      joinedTournaments.flatMap((tournament) => tournament.matchIds),
+    );
+    setTournaments(joinedTournaments);
+    setCreatedTournaments(
+      allTournaments.filter((tournament) => tournament.creatorEmail === currentSession.email),
+    );
+    setMatches(allMatches.filter((match) => joinedMatchIds.has(match.id)));
+  }
+
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
     const currentSession = readSession();
+      if (!isMounted) {
+        return;
+      }
+
     setSession(currentSession);
 
     if (currentSession) {
-      setPlayerName(currentSession.name);
-      setGender(currentSession.gender);
-      const allTournaments = readTournaments();
-      const joinedTournaments = allTournaments.filter((tournament) =>
-        tournament.playerEmails.includes(currentSession.email),
-      );
-      const joinedMatchIds = new Set(
-        joinedTournaments.flatMap((tournament) => tournament.matchIds),
-      );
-      setTournaments(joinedTournaments);
-      setCreatedTournaments(
-        allTournaments.filter((tournament) => tournament.creatorEmail === currentSession.email),
-      );
-      setMatches(readMatches().filter((match) => joinedMatchIds.has(match.id)));
+        await loadPlayerData(currentSession);
     }
+    }
+
+    void loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
+  async function handleAuthenticated(nextSession: SessionPlayer) {
+    setSession(nextSession);
+    await loadPlayerData(nextSession);
+  }
+
+  async function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!session) {
       return;
     }
 
-    const result = updatePlayerProfile(session.email, { name: playerName, gender });
+    const result = await updatePlayerProfile(session.email, { name: playerName, gender });
     setNoticeTone(result.ok ? "success" : "error");
     setNotice(result.message);
 
@@ -67,6 +91,7 @@ export function PlayerPage() {
         ...session,
         name: result.player.name,
         gender,
+        role: result.player.role,
       });
       setPlayerName(result.player.name);
     }
@@ -75,7 +100,7 @@ export function PlayerPage() {
   if (!session) {
     return (
       <main className="page-shell">
-        <AuthPanel onAuthenticated={setSession} />
+        <AuthPanel onAuthenticated={handleAuthenticated} />
       </main>
     );
   }
@@ -92,6 +117,7 @@ export function PlayerPage() {
         <div className="entity-meta">
           <span>{session.verified ? "Email verificado" : "Email pendiente"}</span>
           <span>{formatGender(session.gender)}</span>
+          <span>{formatPlayerRole(session.role)}</span>
           <strong>{tournaments.length} torneos</strong>
           <strong>{createdTournaments.length} creados</strong>
         </div>

@@ -4,6 +4,7 @@ import { MatchDetail } from "../components/match-detail";
 import { PlayerPage } from "../components/player-page";
 import { TournamentDetail } from "../components/tournament-detail";
 import { TournamentsHome } from "../components/tournaments-home";
+import { UsersAdminPage } from "../components/users-admin-page";
 import "../app/globals.css";
 
 function usePathname() {
@@ -33,6 +34,10 @@ function App() {
 
   if (pathname === "/jugador") {
     return <PlayerPage />;
+  }
+
+  if (pathname === "/admin/usuarios") {
+    return <UsersAdminPage />;
   }
 
   if (tournamentMatch) {

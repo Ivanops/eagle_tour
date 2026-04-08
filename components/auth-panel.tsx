@@ -8,7 +8,7 @@ import {
   readSession,
   SessionPlayer,
   verifyPlayerEmail,
-} from "../lib/mock-tennis-store";
+} from "../lib/tennis-store";
 
 type AuthMode = "login" | "register";
 type NoticeTone = "success" | "error" | "info";
@@ -16,6 +16,16 @@ type NoticeTone = "success" | "error" | "info";
 type AuthPanelProps = {
   onAuthenticated: (session: SessionPlayer) => void;
 };
+
+function hasSessionResult(result: unknown): result is { session: SessionPlayer; message: string } {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    "session" in result &&
+    typeof (result as { session?: unknown }).session === "object" &&
+    (result as { session?: unknown }).session !== null
+  );
+}
 
 export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -25,7 +35,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [gender, setGender] = useState<PlayerGender | "">("");
   const [verificationInput, setVerificationInput] = useState("");
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
-  const [notice, setNotice] = useState("Usa lucia@tennisapp.com / demo1234 para entrar rapido.");
+  const [notice, setNotice] = useState("Ingresa con tu cuenta o crea una nueva para entrar a tus torneos.");
   const [noticeTone, setNoticeTone] = useState<NoticeTone>("info");
 
   useEffect(() => {
@@ -45,7 +55,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
     }
   }
 
-  function handleRegister(event: FormEvent<HTMLFormElement>) {
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -55,7 +65,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
       return;
     }
 
-    const result = createPlayer(name, normalizedEmail, password, gender);
+    const result = await createPlayer(name, normalizedEmail, password, gender);
 
     if (!result.ok) {
       setNoticeTone("error");
@@ -64,16 +74,30 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
       return;
     }
 
-    setPendingVerificationEmail(result.player.email);
+    if (hasSessionResult(result)) {
+      setPendingVerificationEmail("");
+      setNoticeTone("success");
+      setNotice(result.message);
+      resetForm();
+      onAuthenticated(result.session);
+      return;
+    }
+
+    if (!("requiresEmailVerification" in result) || result.requiresEmailVerification !== false) {
+      setPendingVerificationEmail(result.player.email);
+    } else {
+      setPendingVerificationEmail("");
+    }
+
     setNoticeTone("success");
     setNotice(result.message);
     setMode("login");
     resetForm(true);
   }
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = loginPlayer(email, password);
+    const result = await loginPlayer(email, password);
 
     if (!result.ok) {
       if ("pendingVerificationEmail" in result && result.pendingVerificationEmail) {
@@ -90,9 +114,9 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
     onAuthenticated(result.session);
   }
 
-  function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
+  async function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = verifyPlayerEmail(pendingVerificationEmail, verificationInput);
+    const result = await verifyPlayerEmail(pendingVerificationEmail, verificationInput);
 
     if (!result.ok) {
       setNoticeTone("error");
@@ -110,16 +134,16 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   return (
     <section className="auth-hero">
       <div className="hero-copy auth-copy">
-        <p className="eyebrow">TennisApp player access</p>
-        <h1>Login, registro y verificacion mock para tus torneos.</h1>
+        <p className="eyebrow">Acceso de jugadores</p>
+        <h1>Login y registro para tus torneos.</h1>
         <p className="hero-text">
-          Entra como jugador, verifica tu email con un codigo simulado y conserva
-          tu sesion para volver directo a tus torneos.
+          Entra como jugador, crea tu perfil y conserva tu sesion para volver
+          directo a tus torneos.
         </p>
         <div className="hero-badges">
-          <span>Mock auth</span>
-          <span>Email verification</span>
-          <span>Persistent session</span>
+          <span>Cuenta de jugador</span>
+          <span>Perfil editable</span>
+          <span>Sesion persistente</span>
         </div>
       </div>
 
@@ -223,8 +247,8 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               <p className="section-kicker">Verificacion</p>
               <h2>{pendingVerificationEmail}</h2>
               <p>
-                El email esta mockeado, asi que puedes usar el codigo mostrado en el
-                mensaje de arriba.
+                Revisa el mensaje de confirmacion o ingresa el codigo recibido para
+                completar tu cuenta.
               </p>
             </div>
             <input
