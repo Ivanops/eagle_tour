@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "../lib/router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
@@ -32,6 +32,8 @@ type TournamentDetailProps = {
 };
 
 type NoticeTone = "success" | "error";
+const PLAYER_PAGE_SIZE = 10;
+const ALPHABET_FILTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [session, setSession] = useState<SessionPlayer | null>(null);
@@ -44,6 +46,8 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [managementNotice, setManagementNotice] = useState("");
   const [joinNoticeTone, setJoinNoticeTone] = useState<NoticeTone>("success");
   const [managementNoticeTone, setManagementNoticeTone] = useState<NoticeTone>("success");
+  const [playerFilterLetter, setPlayerFilterLetter] = useState<string>("ALL");
+  const [playerPage, setPlayerPage] = useState(1);
 
   useEffect(() => {
     let isMounted = true;
@@ -145,7 +149,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       return;
     }
 
-    if (!window.confirm(`Borrar ${tournament.name}? Esta accion tambien borra sus partidos.`)) {
+    if (!window.confirm(`Delete ${tournament.name}? This will also delete its matches.`)) {
       return;
     }
 
@@ -160,6 +164,51 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     }
   }
 
+  const isJoined = tournament ? tournament.playerEmails.includes(session?.email ?? "") : false;
+  const isCreator = tournament ? tournament.creatorEmail === session?.email : false;
+  const acceptsPlayers = tournament?.status === "abierto";
+  const canSeeMatches = isJoined || isCreator;
+  const closeRestriction =
+    tournament && tournament.status === "abierto" ? getTournamentCloseRestriction(tournament) : "";
+  const canClose = tournament?.status === "abierto";
+  const canFinish = tournament?.status === "cerrado";
+  const hasFinalizedMatches = matches.some((match) => match.status === "finalizado");
+  const standingsAreFinal = tournament?.status === "finalizado";
+  const displayedStandings = standingsAreFinal
+    ? standings
+    : standings.filter((row) => row.email === session?.email);
+  const canSeeStandings =
+    Boolean(standingsAreFinal) || (isJoined && hasFinalizedMatches && displayedStandings.length > 0);
+  const availablePlayers = useMemo(() => {
+    if (!tournament) {
+      return [];
+    }
+
+    return allPlayers
+      .filter((player) => !tournament.playerEmails.includes(player.email))
+      .filter((player) => tournament.gender === "mixto" || player.gender === tournament.gender)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allPlayers, tournament]);
+  const filteredAvailablePlayers = availablePlayers.filter((player) => (
+    playerFilterLetter === "ALL" ||
+    player.name.trim().toUpperCase().startsWith(playerFilterLetter)
+  ));
+  const totalPlayerPages = Math.max(1, Math.ceil(filteredAvailablePlayers.length / PLAYER_PAGE_SIZE));
+  const paginatedAvailablePlayers = filteredAvailablePlayers.slice(
+    (playerPage - 1) * PLAYER_PAGE_SIZE,
+    playerPage * PLAYER_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPlayerPage(1);
+  }, [playerFilterLetter, tournamentId]);
+
+  useEffect(() => {
+    if (playerPage > totalPlayerPages) {
+      setPlayerPage(totalPlayerPages);
+    }
+  }, [playerPage, totalPlayerPages]);
+
   if (!session) {
     return (
       <main className="page-shell">
@@ -173,31 +222,15 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       <main className="page-shell">
         <AppNav session={session} onLogout={() => setSession(null)} />
         <section className="panel">
-          <p className="section-kicker">Torneo</p>
-          <h1>No encontramos este torneo</h1>
+          <p className="section-kicker">Tournament</p>
+          <h1>We could not find this tournament</h1>
           <Link className="secondary-button inline-action" href="/">
-            Volver al home
+            Back home
           </Link>
         </section>
       </main>
     );
   }
-
-  const isJoined = tournament.playerEmails.includes(session.email);
-  const isCreator = tournament.creatorEmail === session.email;
-  const acceptsPlayers = tournament.status === "abierto";
-  const canSeeMatches = isJoined || isCreator;
-  const closeRestriction =
-    tournament.status === "abierto" ? getTournamentCloseRestriction(tournament) : "";
-  const canClose = tournament.status === "abierto";
-  const canFinish = tournament.status === "cerrado";
-  const hasFinalizedMatches = matches.some((match) => match.status === "finalizado");
-  const standingsAreFinal = tournament.status === "finalizado";
-  const displayedStandings = standingsAreFinal
-    ? standings
-    : standings.filter((row) => row.email === session.email);
-  const canSeeStandings =
-    standingsAreFinal || (isJoined && hasFinalizedMatches && displayedStandings.length > 0);
 
   return (
     <main className="page-shell">
@@ -205,7 +238,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
 
       <section className="entity-hero">
         <div>
-          <p className="eyebrow">Torneo</p>
+          <p className="eyebrow">Tournament</p>
           <h1>{tournament.name}</h1>
           <p>{tournament.location}</p>
         </div>
@@ -214,26 +247,26 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
           <span>{tournament.level}</span>
           <span>{formatGender(tournament.gender)}</span>
           <span>{formatTournamentStatus(tournament.status)}</span>
-          <strong>{isJoined ? "Estas anotado" : acceptsPlayers ? "Asignacion por organizador" : "Inscripcion cerrada"}</strong>
+          <strong>{isJoined ? "Joined" : acceptsPlayers ? "Organizer assignment" : "Registration closed"}</strong>
         </div>
       </section>
 
       {isCreator ? (
         <section className="panel join-panel">
           <div className="panel-header">
-            <p className="section-kicker">Gestion</p>
-            <h2>Estado del torneo</h2>
-            <p>Solo el creador puede editar estas opciones.</p>
+            <p className="section-kicker">Management</p>
+            <h2>Tournament status</h2>
+            <p>Only the creator can edit these options.</p>
             {closeRestriction ? <p className="field-help">{closeRestriction}</p> : null}
           </div>
-          <div className="state-actions" aria-label="Gestion de estado del torneo">
+          <div className="state-actions" aria-label="Tournament status management">
             <button
               className="primary-button submit-button"
               disabled={!canClose}
               onClick={() => handleUpdateStatus("cerrado")}
               type="button"
             >
-              Cerrar torneo
+              Close tournament
             </button>
             <button
               className="primary-button submit-button"
@@ -241,14 +274,14 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
               onClick={() => handleUpdateStatus("finalizado")}
               type="button"
             >
-              Finalizar torneo
+              Finish tournament
             </button>
             <button
               className="danger-button submit-button"
               onClick={handleDeleteTournament}
               type="button"
             >
-              Borrar torneo
+              Delete tournament
             </button>
           </div>
           {managementNotice ? (
@@ -262,19 +295,36 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       {isCreator ? (
         <section className="panel join-panel">
           <div className="panel-header">
-            <p className="section-kicker">Jugadores</p>
-            <h2>Agregar jugadores al torneo</h2>
+            <p className="section-kicker">Players</p>
+            <h2>Add players to the tournament</h2>
             <p>
-              Solo el creador puede agregar jugadores. Cuando cierres el torneo,
-              las inscripciones quedan bloqueadas.
+              Only the creator can add players. Once you close the tournament,
+              registrations are locked.
             </p>
           </div>
           {acceptsPlayers ? (
-            <div className="stack-list">
-              {allPlayers
-                .filter((player) => !tournament.playerEmails.includes(player.email))
-                .filter((player) => tournament.gender === "mixto" || player.gender === tournament.gender)
-                .map((player) => (
+            <>
+              <div className="filter-bar" aria-label="Player alphabet filter">
+                <button
+                  className={playerFilterLetter === "ALL" ? "filter-button active" : "filter-button"}
+                  onClick={() => setPlayerFilterLetter("ALL")}
+                  type="button"
+                >
+                  All
+                </button>
+                {ALPHABET_FILTERS.map((letter) => (
+                  <button
+                    className={playerFilterLetter === letter ? "filter-button active" : "filter-button"}
+                    key={letter}
+                    onClick={() => setPlayerFilterLetter(letter)}
+                    type="button"
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+              <div className="stack-list">
+                {paginatedAvailablePlayers.map((player) => (
                   <div className="info-card admin-user-card" key={player.email}>
                     <div className="admin-user-main">
                       <h3>{player.name}</h3>
@@ -286,27 +336,48 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
                       onClick={() => handleAssignPlayer(player.email)}
                       type="button"
                     >
-                      Agregar al torneo
+                      Add to tournament
                     </button>
                   </div>
                 ))}
-              {!allPlayers
-                .filter((player) => !tournament.playerEmails.includes(player.email))
-                .filter((player) => tournament.gender === "mixto" || player.gender === tournament.gender)
-                .length ? (
-                <p className="notice">No hay jugadores disponibles para agregar.</p>
+                {!filteredAvailablePlayers.length ? (
+                  <p className="notice">No players available for this filter.</p>
+                ) : null}
+              </div>
+              {filteredAvailablePlayers.length ? (
+                <div className="filter-bar" aria-label="Player list pagination">
+                  <button
+                    className="secondary-button inline-action"
+                    disabled={playerPage <= 1}
+                    onClick={() => setPlayerPage((current) => Math.max(1, current - 1))}
+                    type="button"
+                  >
+                    Previous
+                  </button>
+                  <span className="field-help">
+                    Page {playerPage} of {totalPlayerPages}
+                  </span>
+                  <button
+                    className="secondary-button inline-action"
+                    disabled={playerPage >= totalPlayerPages}
+                    onClick={() => setPlayerPage((current) => Math.min(totalPlayerPages, current + 1))}
+                    type="button"
+                  >
+                    Next
+                  </button>
+                </div>
               ) : null}
-            </div>
+            </>
           ) : (
-            <p className="notice">Este torneo ya esta cerrado. No se pueden agregar jugadores.</p>
+            <p className="notice">This tournament is already closed. Players can no longer be added.</p>
           )}
         </section>
       ) : !isJoined && acceptsPlayers ? (
         <section className="panel join-panel">
           <div className="panel-header">
-            <p className="section-kicker">Inscripcion</p>
-            <h2>Asignacion por organizador</h2>
-            <p>El creador del torneo debe agregarte a la lista de jugadores.</p>
+            <p className="section-kicker">Registration</p>
+            <h2>Organizer assignment</h2>
+            <p>The tournament creator needs to add you to the player list.</p>
           </div>
           {joinNotice ? (
             <p className={`notice notice-${joinNoticeTone}`} role="alert">
@@ -317,9 +388,9 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       ) : !isJoined && !acceptsPlayers ? (
         <section className="panel join-panel">
           <div className="panel-header">
-            <p className="section-kicker">Inscripcion</p>
-            <h2>Este torneo ya no acepta jugadores</h2>
-            <p>Estado actual: {formatTournamentStatus(tournament.status)}.</p>
+            <p className="section-kicker">Registration</p>
+            <h2>This tournament is no longer accepting players</h2>
+            <p>Current status: {formatTournamentStatus(tournament.status)}.</p>
           </div>
           {joinNotice ? (
             <p className={`notice notice-${joinNoticeTone}`} role="alert">
@@ -332,26 +403,26 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       {canSeeStandings ? (
         <section className="panel standings-panel">
           <div className="panel-header">
-            <p className="section-kicker">Resultados</p>
-            <h2>{standingsAreFinal ? "Tabla del torneo" : "Tu tabla parcial"}</h2>
+            <p className="section-kicker">Results</p>
+            <h2>{standingsAreFinal ? "Tournament standings" : "Your partial standings"}</h2>
             <p>
               {standingsAreFinal
-                ? "Ordenada por puntos, sets a favor y games a favor."
-                : "Calculada solo con tus partidos finalizados."}
+                ? "Sorted by points, sets won, and games won."
+                : "Calculated only from your completed matches."}
             </p>
           </div>
           <div className="table-scroll">
             <table className="standings-table">
               <thead>
                 <tr>
-                  <th>Jugador</th>
-                  <th>Puntos</th>
-                  <th>Sets a favor</th>
-                  <th>Sets en contra</th>
-                  <th>Diferencia sets</th>
-                  <th>Games a favor</th>
-                  <th>Games en contra</th>
-                  <th>Diferencia games</th>
+                  <th>Player</th>
+                  <th>Points</th>
+                  <th>Sets won</th>
+                  <th>Sets lost</th>
+                  <th>Set difference</th>
+                  <th>Games won</th>
+                  <th>Games lost</th>
+                  <th>Game difference</th>
                 </tr>
               </thead>
               <tbody>
@@ -377,8 +448,8 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
         {canSeeMatches ? (
           <article className="panel">
             <div className="panel-header">
-              <p className="section-kicker">Partidos</p>
-              <h2>Lista de partidos del torneo</h2>
+              <p className="section-kicker">Matches</p>
+              <h2>Tournament match list</h2>
             </div>
             <div className="stack-list">
               {matches.map((match) => (
@@ -397,9 +468,9 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
 
         <aside className="panel side-panel">
           <div className="panel-header">
-            <p className="section-kicker">Jugadores</p>
-            <h2>Inscritos</h2>
-            <p>{players.length} jugadores anotados.</p>
+            <p className="section-kicker">Players</p>
+            <h2>Registered</h2>
+            <p>{players.length} registered players.</p>
           </div>
           <div className="stack-list">
             {players.length ? players.map((player) => (
@@ -415,11 +486,11 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
                     onClick={() => handleRemovePlayer(player.email)}
                     type="button"
                   >
-                    Remover
+                    Remove
                   </button>
                 ) : null}
               </div>
-            )) : <p className="notice">Todavia no hay jugadores inscritos.</p>}
+            )) : <p className="notice">There are no registered players yet.</p>}
           </div>
         </aside>
       </section>

@@ -40,7 +40,7 @@ export function TournamentsHome() {
   const [name, setName] = useState("");
   const [date, setDate] = useState(todayDate);
   const [location, setLocation] = useState("");
-  const [level, setLevel] = useState("Intermedio");
+  const [level, setLevel] = useState("Intermediate");
   const [gender, setGender] = useState<TournamentGender>("mixto");
   const [filter, setFilter] = useState<TournamentFilter>("general");
 
@@ -89,19 +89,19 @@ export function TournamentsHome() {
 
     if (!session) {
       setNoticeTone("error");
-      setNotice("Inicia sesion para crear torneos.");
+      setNotice("Sign in to create tournaments.");
       return;
     }
 
     if (!name.trim() || !location.trim()) {
       setNoticeTone("error");
-      setNotice("Completa nombre y sede del torneo.");
+      setNotice("Complete the tournament name and location.");
       return;
     }
 
     if (date < todayDate) {
       setNoticeTone("error");
-      setNotice("Elige una fecha de hoy en adelante.");
+      setNotice("Choose a date from today onward.");
       return;
     }
 
@@ -125,7 +125,7 @@ export function TournamentsHome() {
     setName("");
     setDate(todayDate);
     setLocation("");
-    setLevel("Intermedio");
+    setLevel("Intermediate");
     setGender("mixto");
     setShowCreate(false);
     setNoticeTone("success");
@@ -155,9 +155,9 @@ export function TournamentsHome() {
     })
     .slice(0, 12);
   const filterLabel = {
-    general: "ultimos torneos",
-    created: "torneos creados por ti",
-    joined: "torneos donde estas anotado",
+    general: "latest tournaments",
+    created: "tournaments created by you",
+    joined: "tournaments you joined",
   }[filter];
   const createdTournamentCount = tournaments.filter(
     (tournament) => tournament.creatorEmail === session.email,
@@ -169,11 +169,11 @@ export function TournamentsHome() {
   async function handleDeleteTournament(tournamentId: string, tournamentName: string) {
     if (!session) {
       setNoticeTone("error");
-      setNotice("Inicia sesion para borrar torneos.");
+      setNotice("Sign in to delete tournaments.");
       return;
     }
 
-    if (!window.confirm(`Borrar ${tournamentName}? Esta accion tambien borra sus partidos.`)) {
+    if (!window.confirm(`Delete ${tournamentName}? This will also delete its matches.`)) {
       return;
     }
 
@@ -191,11 +191,11 @@ export function TournamentsHome() {
       <AppNav session={session} onLogout={() => setSession(null)} />
 
       <section className="mobile-hero">
-        <p className="eyebrow">Home del jugador</p>
-        <h1>Torneos disponibles</h1>
+        <p className="eyebrow">Player home</p>
+        <h1>Available tournaments</h1>
         <p>
-          Explora torneos, revisa tus inscripciones o crea uno nuevo para invitar
-          jugadores.
+          Explore tournaments, review your entries, or create a new one to invite
+          players.
         </p>
         <button
           className="primary-button submit-button"
@@ -203,13 +203,13 @@ export function TournamentsHome() {
           onClick={() => setShowCreate((current) => !current)}
           type="button"
         >
-          {showCreate ? "Ocultar formulario" : "Crear torneo"}
+          {showCreate ? "Hide form" : "Create tournament"}
         </button>
         {!canCreateTournament ? (
           <p className="field-help">
             {hasCreationPermission
-              ? `Ya creaste ${MAX_TOURNAMENTS_PER_CREATOR} torneos. Borra uno para crear otro.`
-              : "Necesitas permiso de un super usuario para crear torneos."}
+              ? `You already created ${MAX_TOURNAMENTS_PER_CREATOR} tournaments. Delete one to create another.`
+              : "You need permission from a super user to create tournaments."}
           </p>
         ) : null}
       </section>
@@ -217,21 +217,21 @@ export function TournamentsHome() {
       {showCreate && canCreateTournament ? (
         <section className="panel create-panel">
           <div className="panel-header">
-            <p className="section-kicker">Nuevo torneo</p>
-            <h2>Crear torneo</h2>
+            <p className="section-kicker">New tournament</p>
+            <h2>Create tournament</h2>
           </div>
           <form className="auth-form tournament-form" onSubmit={handleCreateTournament}>
             <label>
-              Nombre
+              Name
               <input
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Ej: Club Open Abril"
+                placeholder="Ex: Club Open April"
                 type="text"
                 value={name}
               />
             </label>
             <label>
-              Fecha del torneo
+              Tournament date
               <input
                 min={todayDate}
                 onChange={(event) => setDate(event.target.value)}
@@ -240,40 +240,40 @@ export function TournamentsHome() {
                 value={date}
               />
               <span className="field-help">
-                Por defecto usa hoy. No se pueden elegir fechas pasadas.
+                Defaults to today. Past dates are not allowed.
               </span>
             </label>
             <label>
-              Sede
+              Location
               <input
                 onChange={(event) => setLocation(event.target.value)}
-                placeholder="Ej: Canchas del club"
+                placeholder="Ex: Club courts"
                 type="text"
                 value={location}
               />
             </label>
             <label>
-              Nivel
+              Level
               <input
                 onChange={(event) => setLevel(event.target.value)}
-                placeholder="Ej: Intermedio"
+                placeholder="Ex: Intermediate"
                 type="text"
                 value={level}
               />
             </label>
             <label>
-              Tipo de torneo
+              Tournament type
               <select
                 onChange={(event) => setGender(event.target.value as TournamentGender)}
                 value={gender}
               >
-                <option value="mixto">Mixto</option>
-                <option value="femenino">Solo femenino</option>
-                <option value="masculino">Solo masculino</option>
+                <option value="mixto">Mixed</option>
+                <option value="femenino">Female only</option>
+                <option value="masculino">Male only</option>
               </select>
             </label>
             <button className="primary-button submit-button" type="submit">
-              Guardar torneo
+              Save tournament
             </button>
           </form>
         </section>
@@ -283,35 +283,35 @@ export function TournamentsHome() {
 
       <section className="panel tournament-filter-panel">
         <div className="panel-header">
-          <p className="section-kicker">Explorar</p>
+          <p className="section-kicker">Browse</p>
           <h2>{filteredTournaments.length} {filterLabel}</h2>
         </div>
-        <div className="filter-bar" aria-label="Filtros de torneos">
+        <div className="filter-bar" aria-label="Tournament filters">
           <button
             className={filter === "general" ? "filter-button active" : "filter-button"}
             onClick={() => setFilter("general")}
             type="button"
           >
-            Todos
+            All
           </button>
           <button
             className={filter === "created" ? "filter-button active" : "filter-button"}
             onClick={() => setFilter("created")}
             type="button"
           >
-            Creados por mi
+            Created by me
           </button>
           <button
             className={filter === "joined" ? "filter-button active" : "filter-button"}
             onClick={() => setFilter("joined")}
             type="button"
           >
-            Estoy anotado
+            Joined
           </button>
         </div>
       </section>
 
-      <section className="tournament-list" aria-label="Lista de torneos">
+      <section className="tournament-list" aria-label="Tournament list">
         {filteredTournaments.map((tournament) => {
           const isJoined = tournament.playerEmails.includes(session.email);
           const isCreator = tournament.creatorEmail === session.email;
@@ -326,16 +326,16 @@ export function TournamentsHome() {
                   <p>{tournament.location}</p>
                 </div>
                 <div className="card-meta">
-                  <span>{tournament.date || "Fecha por confirmar"}</span>
+                  <span>{tournament.date || "Date to be confirmed"}</span>
                   <span>{formatGender(tournament.gender)}</span>
                   <span>{formatTournamentStatus(tournament.status)}</span>
-                  <span>{matchCount} partidos</span>
+                  <span>{matchCount} matches</span>
                   <strong>
                     {isJoined
-                      ? "Anotado"
+                      ? "Joined"
                       : tournament.status === "abierto"
-                        ? "Asignacion por organizador"
-                        : "Inscripcion cerrada"}
+                        ? "Organizer assignment"
+                        : "Registration closed"}
                   </strong>
                 </div>
               </Link>
@@ -345,7 +345,7 @@ export function TournamentsHome() {
                   onClick={() => handleDeleteTournament(tournament.id, tournament.name)}
                   type="button"
                 >
-                  Borrar torneo
+                  Delete tournament
                 </button>
               ) : null}
             </article>
@@ -353,7 +353,7 @@ export function TournamentsHome() {
         })}
       </section>
       {!filteredTournaments.length ? (
-        <p className="notice">No hay torneos para este filtro.</p>
+        <p className="notice">There are no tournaments for this filter.</p>
       ) : null}
     </main>
   );

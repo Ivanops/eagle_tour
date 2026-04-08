@@ -36,7 +36,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [gender, setGender] = useState<PlayerGender | "">("");
   const [verificationInput, setVerificationInput] = useState("");
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
-  const [notice, setNotice] = useState("Ingresa con tu cuenta o crea una nueva para entrar a tus torneos.");
+  const [notice, setNotice] = useState("Sign in with your account or create a new one to access your tournaments.");
   const [noticeTone, setNoticeTone] = useState<NoticeTone>("info");
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
     if (!normalizedEmail || !password.trim() || !name.trim() || !gender) {
       setNoticeTone("error");
-      setNotice("Completa nombre, genero, email y password para registrarte.");
+      setNotice("Complete name, gender, email, and password to sign up.");
       return;
     }
 
@@ -136,16 +136,16 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   return (
     <section className="auth-hero">
       <div className="hero-copy auth-copy">
-        <p className="eyebrow">Acceso de jugadores</p>
-        <h1>Login y registro para tus torneos.</h1>
+        <p className="eyebrow">Player access</p>
+        <h1>Sign in and registration for your tournaments.</h1>
         <p className="hero-text">
-          Entra como jugador, crea tu perfil y conserva tu sesion para volver
-          directo a tus torneos.
+          Sign in as a player, create your profile, and keep your session active
+          so you can jump back into your tournaments.
         </p>
         <div className="hero-badges">
-          <span>Cuenta de jugador</span>
-          <span>Perfil editable</span>
-          <span>Sesion persistente</span>
+          <span>Player account</span>
+          <span>Editable profile</span>
+          <span>Persistent session</span>
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                 <input
                   autoComplete="current-password"
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Tu password"
+                  placeholder="Your password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                 />
@@ -194,21 +194,21 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                   onClick={() => setShowPassword((current) => !current)}
                   type="button"
                 >
-                  {showPassword ? "Ocultar" : "Ver"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </span>
             </label>
             <button className="primary-button submit-button" type="submit">
-              Entrar a mi cuenta
+              Sign in
             </button>
           </form>
         ) : (
           <form className="auth-form" onSubmit={handleRegister}>
             <label>
-              Nombre
+              Name
               <input
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Nombre del jugador"
+                placeholder="Player name"
                 type="text"
                 value={name}
               />
@@ -229,7 +229,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                 <input
                   autoComplete="new-password"
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Crea tu password"
+                  placeholder="Create your password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                 />
@@ -238,23 +238,23 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                   onClick={() => setShowPassword((current) => !current)}
                   type="button"
                 >
-                  {showPassword ? "Ocultar" : "Ver"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </span>
             </label>
             <label>
-              Genero
+              Gender
               <select
                 onChange={(event) => setGender(event.target.value as PlayerGender | "")}
                 value={gender}
               >
-                <option value="">Selecciona tu genero</option>
-                <option value="femenino">Femenino</option>
-                <option value="masculino">Masculino</option>
+                <option value="">Select your gender</option>
+                <option value="femenino">Female</option>
+                <option value="masculino">Male</option>
               </select>
             </label>
             <button className="primary-button submit-button" type="submit">
-              Crear cuenta
+              Create account
             </button>
           </form>
         )}
@@ -264,22 +264,22 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         {pendingVerificationEmail ? (
           <form className="verification-box" onSubmit={handleVerifyEmail}>
             <div>
-              <p className="section-kicker">Verificacion</p>
+              <p className="section-kicker">Verification</p>
               <h2>{pendingVerificationEmail}</h2>
               <p>
-                Revisa el mensaje de confirmacion o ingresa el codigo recibido para
-                completar tu cuenta.
+                Check the confirmation email or enter the code you received to
+                finish setting up your account.
               </p>
             </div>
             <input
               inputMode="numeric"
               onChange={(event) => setVerificationInput(event.target.value)}
-              placeholder="Codigo de 6 digitos"
+              placeholder="6-digit code"
               type="text"
               value={verificationInput}
             />
             <button className="secondary-button submit-button" type="submit">
-              Verificar email
+              Verify email
             </button>
           </form>
         ) : null}

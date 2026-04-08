@@ -231,8 +231,8 @@ const defaultMatches: TennisMatch[] = [
   {
     id: "barcelona-open-series-match-1",
     tournamentId: "barcelona-open-series",
-    round: "Partido 1",
-    court: "Cancha central",
+    round: "Match 1",
+    court: "Center court",
     startsAt: "21 Apr 2026",
     playerA: "Lucia Navarro / Mateo Rios",
     playerB: "Sofia Vega / Diego Torres",
@@ -258,8 +258,8 @@ const defaultMatches: TennisMatch[] = [
   {
     id: "barcelona-open-series-match-2",
     tournamentId: "barcelona-open-series",
-    round: "Partido 2",
-    court: "Cancha 3",
+    round: "Match 2",
+    court: "Court 3",
     startsAt: "21 Apr 2026",
     playerA: "Lucia Navarro / Sofia Vega",
     playerB: "Mateo Rios / Diego Torres",
@@ -280,8 +280,8 @@ const defaultMatches: TennisMatch[] = [
   {
     id: "barcelona-open-series-match-3",
     tournamentId: "barcelona-open-series",
-    round: "Partido 3",
-    court: "Cancha 4",
+    round: "Match 3",
+    court: "Court 4",
     startsAt: "21 Apr 2026",
     playerA: "Lucia Navarro / Diego Torres",
     playerB: "Sofia Vega / Mateo Rios",
@@ -293,14 +293,14 @@ const defaultMatches: TennisMatch[] = [
     ],
     finalizationAcceptedBy: [],
     status: "por_jugar",
-    score: "Por jugarse",
+    score: "Pending",
     sets: [{ id: "set-1", pairAGames: 0, pairBGames: 0 }],
   },
   {
     id: "roma-mixed-finals-match-1",
     tournamentId: "roma-mixed-finals",
-    round: "Partido 1",
-    court: "Cancha 2",
+    round: "Match 1",
+    court: "Court 2",
     startsAt: "04 May 2026",
     playerA: "Lucia Navarro / Mateo Rios",
     playerB: "Sofia Vega / Diego Torres",
@@ -543,15 +543,15 @@ function createTournamentMatch(
   return {
     id: `${tournament.id}-match-${index}`,
     tournamentId: tournament.id,
-    round: `Partido ${index}`,
-    court: "Cancha por confirmar",
+    round: `Match ${index}`,
+    court: "Court to be confirmed",
     startsAt: tournament.date,
     playerA,
     playerB,
     playerEmails,
     finalizationAcceptedBy: [],
     status: "por_jugar",
-    score: "Por jugarse",
+    score: "Pending",
     sets: [makeDefaultSet()],
   };
 }
@@ -660,7 +660,7 @@ export function getTournamentCloseRestriction(tournament: Tournament) {
   const totalPlayers = counts.femenino + counts.masculino;
 
   if (totalPlayers === 0) {
-    return "No puedes cerrar un torneo sin jugadores inscritos.";
+    return "You cannot close a tournament with no registered players.";
   }
 
   if (tournament.gender === "mixto") {
@@ -671,7 +671,7 @@ export function getTournamentCloseRestriction(tournament: Tournament) {
       return "";
     }
 
-    return `Para cerrar un torneo mixto necesitas la misma cantidad de mujeres y hombres, y que ambas cantidades sean multiplos de 2. Ahora hay ${counts.femenino} mujeres y ${counts.masculino} hombres.`;
+    return `To close a mixed tournament you need the same number of women and men, and both counts must be multiples of 2. Right now there are ${counts.femenino} women and ${counts.masculino} men.`;
   }
 
   const playerCount = counts[tournament.gender];
@@ -680,7 +680,7 @@ export function getTournamentCloseRestriction(tournament: Tournament) {
     return "";
   }
 
-  return `Para cerrar un torneo ${formatGender(tournament.gender).toLowerCase()} la cantidad de jugadores debe ser multiplo de 4. Ahora hay ${playerCount}.`;
+  return `To close a ${formatGender(tournament.gender).toLowerCase()} tournament, the player count must be a multiple of 4. Right now there are ${playerCount}.`;
 }
 
 function getTournamentStatusTransitionRestriction(
@@ -689,19 +689,19 @@ function getTournamentStatusTransitionRestriction(
   nextStatus: TournamentStatus,
 ) {
   if (tournament.status === "finalizado") {
-    return "Este torneo ya esta finalizado y no se puede modificar.";
+    return "This tournament is already finished and cannot be changed.";
   }
 
   if (tournament.status === "abierto" && nextStatus !== "cerrado") {
-    return "Un torneo abierto solo puede cerrarse.";
+    return "An open tournament can only be closed.";
   }
 
   if (tournament.status === "cerrado" && nextStatus !== "finalizado") {
-    return "Un torneo cerrado solo puede finalizarse cuando todos sus partidos esten finalizados.";
+    return "A closed tournament can only be finished when all its matches are completed.";
   }
 
   if (tournament.status === nextStatus) {
-    return `El torneo ya esta ${formatTournamentStatus(nextStatus).toLowerCase()}.`;
+    return `The tournament is already ${formatTournamentStatus(nextStatus).toLowerCase()}.`;
   }
 
   if (nextStatus === "cerrado") {
@@ -711,7 +711,7 @@ function getTournamentStatusTransitionRestriction(
   if (nextStatus === "finalizado") {
     const matchCount = getTournamentMatchCount(tournament, matches);
     if (matchCount === 0 || !areTournamentMatchesFinished(tournament, matches)) {
-      return "Para finalizar el torneo, todos sus partidos deben estar finalizados.";
+      return "To finish the tournament, all its matches must be completed.";
     }
   }
 
@@ -720,9 +720,9 @@ function getTournamentStatusTransitionRestriction(
 
 export function formatGender(gender: TournamentGender) {
   const labels: Record<TournamentGender, string> = {
-    femenino: "Femenino",
-    masculino: "Masculino",
-    mixto: "Mixto",
+    femenino: "Female",
+    masculino: "Male",
+    mixto: "Mixed",
   };
 
   return labels[gender];
@@ -730,9 +730,9 @@ export function formatGender(gender: TournamentGender) {
 
 export function formatPlayerRole(role: PlayerRole) {
   const labels: Record<PlayerRole, string> = {
-    player: "Jugador",
-    organizer: "Creador de torneos",
-    super: "Super usuario",
+    player: "Player",
+    organizer: "Organizer",
+    super: "Super user",
   };
 
   return labels[role];
@@ -744,9 +744,9 @@ export function canCreateTournaments(player: Pick<SessionPlayer, "role">) {
 
 export function formatTournamentStatus(status: TournamentStatus) {
   const labels: Record<TournamentStatus, string> = {
-    abierto: "Abierto",
-    cerrado: "Cerrado",
-    finalizado: "Finalizado",
+    abierto: "Open",
+    cerrado: "Closed",
+    finalizado: "Finished",
   };
 
   return labels[status];
@@ -754,8 +754,8 @@ export function formatTournamentStatus(status: TournamentStatus) {
 
 export function formatMatchStatus(status: MatchStatus) {
   const labels: Record<MatchStatus, string> = {
-    por_jugar: "Por jugar",
-    finalizado: "Finalizado",
+    por_jugar: "Pending",
+    finalizado: "Finished",
   };
 
   return labels[status];
@@ -879,7 +879,7 @@ export function readMatches() {
   const matches = readJson<TennisMatch[]>(KEYS.matches, defaultMatches);
   const normalizedMatches = matches.map((match) => {
     const sets = normalizeMatchSets((match as Partial<TennisMatch>).sets);
-    const score = match.score && match.score !== "Por jugarse" ? match.score : formatMatchScore(sets);
+    const score = match.score && match.score !== "Pending" ? match.score : formatMatchScore(sets);
     const playerEmails = normalizeMatchPlayerEmails(match);
     const finalizationAcceptedBy = getUniqueEmails(
       Array.isArray((match as Partial<TennisMatch>).finalizationAcceptedBy)
@@ -1005,7 +1005,7 @@ export function createPlayer(name: string, email: string, password: string, gend
   const normalizedEmail = email.trim().toLowerCase();
 
   if (players.some((player) => player.email === normalizedEmail)) {
-    return { ok: false as const, message: "Ese email ya existe. Prueba iniciar sesion." };
+    return { ok: false as const, message: "That email already exists. Try signing in." };
   }
 
   const verificationCode = makeVerificationCode();
@@ -1024,7 +1024,7 @@ export function createPlayer(name: string, email: string, password: string, gend
   return {
     ok: true as const,
     player,
-    message: `Cuenta creada. Codigo mock enviado: ${verificationCode}`,
+    message: `Account created. Mock code sent: ${verificationCode}`,
   };
 }
 
@@ -1033,11 +1033,11 @@ export function verifyPlayerEmail(email: string, code: string) {
   const index = players.findIndex((entry) => entry.email === email.trim().toLowerCase());
 
   if (index === -1) {
-    return { ok: false as const, message: "No encontramos un jugador pendiente." };
+    return { ok: false as const, message: "We could not find a pending player." };
   }
 
   if (players[index].verificationCode !== code.trim()) {
-    return { ok: false as const, message: "Codigo incorrecto." };
+    return { ok: false as const, message: "Incorrect code." };
   }
 
   const updatedPlayer: RegisteredPlayer = { ...players[index], verified: true };
@@ -1054,7 +1054,7 @@ export function verifyPlayerEmail(email: string, code: string) {
   };
   saveSession(session);
 
-  return { ok: true as const, session, message: "Email verificado y sesion iniciada." };
+  return { ok: true as const, session, message: "Email verified and signed in." };
 }
 
 export function loginPlayer(email: string, password: string) {
@@ -1062,14 +1062,14 @@ export function loginPlayer(email: string, password: string) {
   const player = readPlayers().find((entry) => entry.email === normalizedEmail);
 
   if (!player || player.password !== password) {
-    return { ok: false as const, message: "Credenciales invalidas." };
+    return { ok: false as const, message: "Invalid credentials." };
   }
 
   if (!player.verified) {
     return {
       ok: false as const,
       pendingVerificationEmail: player.email,
-      message: `Tu email aun no fue verificado. Codigo mock: ${player.verificationCode}`,
+      message: `Your email has not been verified yet. Mock code: ${player.verificationCode}`,
     };
   }
 
@@ -1082,7 +1082,7 @@ export function loginPlayer(email: string, password: string) {
   };
   saveSession(session);
 
-  return { ok: true as const, session, message: `Sesion iniciada. Bienvenido, ${player.name}.` };
+  return { ok: true as const, session, message: `Signed in. Welcome, ${player.name}.` };
 }
 
 export function createTournament(input: CreateTournamentInput) {
@@ -1091,7 +1091,7 @@ export function createTournament(input: CreateTournamentInput) {
   if (!canPlayerCreateTournaments(input.creator)) {
     return {
       ok: false as const,
-      message: "Necesitas permiso de un super usuario para crear torneos.",
+      message: "You need permission from a super user to create tournaments.",
     };
   }
 
@@ -1102,12 +1102,12 @@ export function createTournament(input: CreateTournamentInput) {
   if (creatorTournamentCount >= MAX_TOURNAMENTS_PER_CREATOR) {
     return {
       ok: false as const,
-      message: `Puedes crear hasta ${MAX_TOURNAMENTS_PER_CREATOR} torneos como maximo.`,
+      message: `You can create up to ${MAX_TOURNAMENTS_PER_CREATOR} tournaments.`,
     };
   }
 
   const tournamentId = makeId(input.name);
-  const tournamentDate = input.date.trim() || "Fecha por confirmar";
+  const tournamentDate = input.date.trim() || "Date to be confirmed";
 
   const tournament: Tournament = {
     id: tournamentId,
@@ -1128,7 +1128,7 @@ export function createTournament(input: CreateTournamentInput) {
   return {
     ok: true as const,
     tournament,
-    message: `Torneo creado: ${tournament.name}. Agrega jugadores desde la gestion del torneo.`,
+    message: `Tournament created: ${tournament.name}. Add players from tournament management.`,
   };
 }
 
@@ -1137,17 +1137,17 @@ export function deleteTournament(tournamentId: string, player: SessionPlayer) {
   const tournament = tournaments.find((entry) => entry.id === tournamentId);
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede borrar el torneo." };
+    return { ok: false as const, message: "Only the creator can delete the tournament." };
   }
 
   saveTournaments(tournaments.filter((entry) => entry.id !== tournamentId));
   saveMatches(readMatches().filter((match) => match.tournamentId !== tournamentId));
 
-  return { ok: true as const, message: "Torneo borrado." };
+  return { ok: true as const, message: "Tournament deleted." };
 }
 
 export function joinTournament(tournamentId: string, player: SessionPlayer, password: string) {
@@ -1157,7 +1157,7 @@ export function joinTournament(tournamentId: string, player: SessionPlayer, pass
 
   return {
     ok: false as const,
-    message: "La inscripcion la realiza el creador del torneo.",
+    message: "Tournament registration is handled by the creator.",
   };
 }
 
@@ -1171,32 +1171,32 @@ export function assignTournamentPlayer(
   const index = tournaments.findIndex((entry) => entry.id === tournamentId);
 
   if (index === -1) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   const tournament = tournaments[index];
 
   if (tournament.creatorEmail !== actor.email) {
-    return { ok: false as const, message: "Solo el creador puede agregar jugadores." };
+    return { ok: false as const, message: "Only the creator can add players." };
   }
 
   if (tournament.status !== "abierto") {
-    return { ok: false as const, message: "Solo puedes agregar jugadores mientras el torneo esta abierto." };
+    return { ok: false as const, message: "You can only add players while the tournament is open." };
   }
 
   const targetPlayer = players.find((player) => player.email === targetEmail.trim().toLowerCase());
   if (!targetPlayer) {
-    return { ok: false as const, message: "No encontramos ese jugador." };
+    return { ok: false as const, message: "We could not find that player." };
   }
 
   if (tournament.playerEmails.includes(targetPlayer.email)) {
-    return { ok: true as const, tournament, message: `${targetPlayer.name} ya estaba anotado.` };
+    return { ok: true as const, tournament, message: `${targetPlayer.name} was already registered.` };
   }
 
   if (tournament.gender !== "mixto" && tournament.gender !== targetPlayer.gender) {
     return {
       ok: false as const,
-      message: `Este torneo es ${formatGender(tournament.gender)}. ${targetPlayer.name} figura como ${formatGender(targetPlayer.gender)}.`,
+      message: `This tournament is ${formatGender(tournament.gender)}. ${targetPlayer.name} is listed as ${formatGender(targetPlayer.gender)}.`,
     };
   }
 
@@ -1208,7 +1208,7 @@ export function assignTournamentPlayer(
   nextTournaments[index] = updatedTournament;
   saveTournaments(nextTournaments);
 
-  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} fue agregado al torneo.` };
+  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} was added to the tournament.` };
 }
 
 export function removeTournamentPlayer(
@@ -1221,26 +1221,26 @@ export function removeTournamentPlayer(
   const index = tournaments.findIndex((entry) => entry.id === tournamentId);
 
   if (index === -1) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   const tournament = tournaments[index];
 
   if (tournament.creatorEmail !== actor.email) {
-    return { ok: false as const, message: "Solo el creador puede remover jugadores." };
+    return { ok: false as const, message: "Only the creator can remove players." };
   }
 
   if (tournament.status !== "abierto") {
-    return { ok: false as const, message: "Solo puedes remover jugadores mientras el torneo esta abierto." };
+    return { ok: false as const, message: "You can only remove players while the tournament is open." };
   }
 
   const targetPlayer = players.find((player) => player.email === targetEmail.trim().toLowerCase());
   if (!targetPlayer) {
-    return { ok: false as const, message: "No encontramos ese jugador." };
+    return { ok: false as const, message: "We could not find that player." };
   }
 
   if (!tournament.playerEmails.includes(targetPlayer.email)) {
-    return { ok: true as const, tournament, message: `${targetPlayer.name} no estaba anotado.` };
+    return { ok: true as const, tournament, message: `${targetPlayer.name} was not registered.` };
   }
 
   const updatedTournament: Tournament = {
@@ -1251,7 +1251,7 @@ export function removeTournamentPlayer(
   nextTournaments[index] = updatedTournament;
   saveTournaments(nextTournaments);
 
-  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} fue removido del torneo.` };
+  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} was removed from the tournament.` };
 }
 
 export function updateTournamentStatus(
@@ -1264,13 +1264,13 @@ export function updateTournamentStatus(
   const index = tournaments.findIndex((entry) => entry.id === tournamentId);
 
   if (index === -1) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   const tournament = tournaments[index];
 
   if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede editar el estado del torneo." };
+    return { ok: false as const, message: "Only the creator can edit the tournament status." };
   }
 
   const transitionRestriction = getTournamentStatusTransitionRestriction(tournament, matches, status);
@@ -1300,7 +1300,7 @@ export function updateTournamentStatus(
   };
   saveTournaments(nextTournaments);
 
-  return { ok: true as const, tournament: nextTournaments[index], message: "Estado del torneo actualizado." };
+  return { ok: true as const, tournament: nextTournaments[index], message: "Tournament status updated." };
 }
 
 export function updateMatchStatus(matchId: string, player: SessionPlayer, status: MatchStatus) {
@@ -1309,40 +1309,40 @@ export function updateMatchStatus(matchId: string, player: SessionPlayer, status
   const matchIndex = matches.findIndex((match) => match.id === matchId);
 
   if (matchIndex === -1) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   const match = matches[matchIndex];
   const tournamentIndex = tournaments.findIndex((entry) => entry.id === match.tournamentId);
 
   if (tournamentIndex === -1) {
-    return { ok: false as const, message: "No encontramos el torneo de este partido." };
+    return { ok: false as const, message: "We could not find this match's tournament." };
   }
 
   const tournament = tournaments[tournamentIndex];
 
   if (status !== "finalizado") {
-    return { ok: false as const, message: "El partido solo puede finalizarse con la aceptacion de los 4 jugadores." };
+    return { ok: false as const, message: "This match can only be finished after all 4 players accept the result." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden aceptar el resultado." };
+    return { ok: false as const, message: "Only players in this match can accept the result." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: true as const, match, message: "Este partido ya esta finalizado." };
+    return { ok: true as const, match, message: "This match is already finished." };
   }
 
   if (match.playerEmails.length < 4) {
-    return { ok: false as const, message: "Este partido necesita 4 jugadores para poder finalizarse." };
+    return { ok: false as const, message: "This match needs 4 players before it can be finished." };
   }
 
   if (match.finalizationAcceptedBy.includes(player.email)) {
-    return { ok: true as const, match, message: "Ya habias aceptado este resultado." };
+    return { ok: true as const, match, message: "You had already accepted this result." };
   }
 
   const finalizationAcceptedBy = [...match.finalizationAcceptedBy, player.email];
@@ -1370,8 +1370,8 @@ export function updateMatchStatus(matchId: string, player: SessionPlayer, status
     ok: true as const,
     match: updatedMatch,
     message: isFinalized
-      ? "Los 4 jugadores aceptaron el resultado. Partido finalizado."
-      : `Resultado aceptado. Faltan ${4 - finalizationAcceptedBy.length} jugadores.`,
+      ? "All 4 players accepted the result. Match finished."
+      : `Result accepted. ${4 - finalizationAcceptedBy.length} players still missing.`,
   };
 }
 
@@ -1387,26 +1387,26 @@ export function updateMatchSetGames(
   const matchIndex = matches.findIndex((match) => match.id === matchId);
 
   if (matchIndex === -1) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   const match = matches[matchIndex];
   const tournament = tournaments.find((entry) => entry.matchIds.includes(match.id));
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos el torneo de este partido." };
+    return { ok: false as const, message: "We could not find this match's tournament." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden editar los sets." };
+    return { ok: false as const, message: "Only players in this match can edit sets." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This match is already finished and cannot be changed." };
   }
 
   const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
@@ -1433,8 +1433,8 @@ export function updateMatchSetGames(
     ok: true as const,
     match: updatedMatch,
     message: hadAcceptedResults
-      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
-      : "Set actualizado.",
+      ? `${player.name} changed the score. Acceptances were reset so players can confirm the new result.`
+      : "Set updated.",
   };
 }
 
@@ -1444,30 +1444,30 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
   const matchIndex = matches.findIndex((match) => match.id === matchId);
 
   if (matchIndex === -1) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   const match = matches[matchIndex];
   const tournament = tournaments.find((entry) => entry.matchIds.includes(match.id));
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos el torneo de este partido." };
+    return { ok: false as const, message: "We could not find this match's tournament." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden agregar sets." };
+    return { ok: false as const, message: "Only players in this match can add sets." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This match is already finished and cannot be changed." };
   }
 
   if (match.sets.length >= 5) {
-    return { ok: false as const, message: "Un partido puede tener hasta 5 sets." };
+    return { ok: false as const, message: "A match can have up to 5 sets." };
   }
 
   const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
@@ -1487,8 +1487,8 @@ export function addMatchSet(matchId: string, player: SessionPlayer) {
     ok: true as const,
     match: updatedMatch,
     message: hadAcceptedResults
-      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
-      : "Set agregado.",
+      ? `${player.name} changed the score. Acceptances were reset so players can confirm the new result.`
+      : "Set added.",
   };
 }
 
@@ -1498,30 +1498,30 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
   const matchIndex = matches.findIndex((match) => match.id === matchId);
 
   if (matchIndex === -1) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   const match = matches[matchIndex];
   const tournament = tournaments.find((entry) => entry.matchIds.includes(match.id));
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos el torneo de este partido." };
+    return { ok: false as const, message: "We could not find this match's tournament." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden borrar sets." };
+    return { ok: false as const, message: "Only players in this match can delete sets." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This match is already finished and cannot be changed." };
   }
 
   if (match.sets.length <= 1) {
-    return { ok: false as const, message: "El partido debe tener al menos 1 set." };
+    return { ok: false as const, message: "A match must have at least 1 set." };
   }
 
   const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
@@ -1533,7 +1533,7 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
     }));
 
   if (nextSets.length === match.sets.length) {
-    return { ok: false as const, message: "No encontramos ese set." };
+    return { ok: false as const, message: "We could not find that set." };
   }
 
   const updatedMatch = {
@@ -1551,8 +1551,8 @@ export function deleteMatchSet(matchId: string, player: SessionPlayer, setId: st
     ok: true as const,
     match: updatedMatch,
     message: hadAcceptedResults
-      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
-      : "Set borrado.",
+      ? `${player.name} changed the score. Acceptances were reset so players can confirm the new result.`
+      : "Set deleted.",
   };
 }
 
@@ -1562,11 +1562,11 @@ export function updatePlayerProfile(email: string, input: { name: string; gender
   const nextName = input.name.trim();
 
   if (index === -1) {
-    return { ok: false as const, message: "No encontramos este jugador." };
+    return { ok: false as const, message: "We could not find this player." };
   }
 
   if (!nextName) {
-    return { ok: false as const, message: "El nombre no puede quedar vacio." };
+    return { ok: false as const, message: "Name cannot be empty." };
   }
 
   const updatedPlayer: RegisteredPlayer = {
@@ -1587,7 +1587,7 @@ export function updatePlayerProfile(email: string, input: { name: string; gender
     });
   }
 
-  return { ok: true as const, player: updatedPlayer, message: "Perfil actualizado." };
+  return { ok: true as const, player: updatedPlayer, message: "Profile updated." };
 }
 
 export function updateTournamentCreationPermission(
@@ -1596,20 +1596,20 @@ export function updateTournamentCreationPermission(
   canCreate: boolean,
 ) {
   if (actor.role !== "super") {
-    return { ok: false as const, message: "Solo un super usuario puede cambiar permisos." };
+    return { ok: false as const, message: "Only a super user can change permissions." };
   }
 
   const players = readPlayers();
   const index = players.findIndex((player) => player.email === targetEmail.trim().toLowerCase());
 
   if (index === -1) {
-    return { ok: false as const, message: "No encontramos este jugador." };
+    return { ok: false as const, message: "We could not find this player." };
   }
 
   const player = players[index];
 
   if (player.role === "super") {
-    return { ok: false as const, message: "No puedes cambiar el permiso de otro super usuario." };
+    return { ok: false as const, message: "You cannot change another super user's permissions." };
   }
 
   const updatedPlayer: RegisteredPlayer = {
@@ -1635,7 +1635,7 @@ export function updateTournamentCreationPermission(
     ok: true as const,
     player: updatedPlayer,
     message: canCreate
-      ? `${updatedPlayer.name} ahora puede crear torneos.`
-      : `${updatedPlayer.name} ya no puede crear torneos.`,
+      ? `${updatedPlayer.name} can now create tournaments.`
+      : `${updatedPlayer.name} can no longer create tournaments.`,
   };
 }

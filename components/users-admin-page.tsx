@@ -65,10 +65,10 @@ export function UsersAdminPage() {
         <AppNav session={session} onLogout={() => setSession(null)} />
         <section className="panel">
           <p className="section-kicker">Admin</p>
-          <h1>Solo el super usuario puede entrar</h1>
-          <p>Esta pagina gestiona quien puede crear torneos.</p>
+          <h1>Only the super user can access this page</h1>
+          <p>This page controls who can create tournaments.</p>
           <Link className="secondary-button inline-action" href="/">
-            Volver a torneos
+            Back to tournaments
           </Link>
         </section>
       </main>
@@ -81,12 +81,12 @@ export function UsersAdminPage() {
 
       <section className="entity-hero">
         <div>
-          <p className="eyebrow">Super usuario</p>
-          <h1>Usuarios y permisos</h1>
-          <p>Define que jugadores pueden crear torneos.</p>
+          <p className="eyebrow">Super user</p>
+          <h1>Users and permissions</h1>
+          <p>Choose which players can create tournaments.</p>
         </div>
         <div className="entity-meta">
-          <span>{players.length} usuarios</span>
+          <span>{players.length} users</span>
           <strong>{formatPlayerRole(session.role)}</strong>
         </div>
       </section>
@@ -95,8 +95,8 @@ export function UsersAdminPage() {
 
       <section className="panel">
         <div className="panel-header">
-          <p className="section-kicker">Jugadores</p>
-          <h2>Permisos de creacion</h2>
+          <p className="section-kicker">Players</p>
+          <h2>Creation permissions</h2>
         </div>
         <div className="stack-list admin-user-list">
           {players.map((player) => {
@@ -120,10 +120,10 @@ export function UsersAdminPage() {
                       onClick={() => handleToggleTournamentCreation(player.email, !canCreate)}
                       type="button"
                     >
-                      {canCreate ? "Quitar organizer" : "Poner como organizer"}
+                      {canCreate ? "Remove organizer" : "Make organizer"}
                     </button>
                   ) : (
-                    <p className="field-help">El super usuario siempre puede crear torneos.</p>
+                    <p className="field-help">The super user can always create tournaments.</p>
                   )}
                 </div>
               </div>

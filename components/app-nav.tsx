@@ -20,14 +20,14 @@ export function AppNav({ session, onLogout }: AppNavProps) {
         TennisApp
       </Link>
       <nav>
-        <Link href="/">Torneos</Link>
-        <Link href="/jugador">Jugador</Link>
-        {session.role === "super" ? <Link href="/admin/usuarios">Usuarios</Link> : null}
+        <Link href="/">Tournaments</Link>
+        <Link href="/jugador">Player</Link>
+        {session.role === "super" ? <Link href="/admin/usuarios">Users</Link> : null}
       </nav>
       <div className="nav-player">
         <span>{session.name}</span>
         <button className="ghost-button" onClick={handleLogout} type="button">
-          Salir
+          Log out
         </button>
       </div>
     </header>

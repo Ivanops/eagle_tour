@@ -144,10 +144,10 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
       <main className="page-shell">
         <AppNav session={session} onLogout={() => setSession(null)} />
         <section className="panel">
-          <p className="section-kicker">Partido</p>
-          <h1>No encontramos este partido</h1>
+          <p className="section-kicker">Match</p>
+          <h1>We could not find this match</h1>
           <Link className="secondary-button inline-action" href="/">
-            Volver al home
+            Back home
           </Link>
         </section>
       </main>
@@ -165,7 +165,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
       <AppNav session={session} onLogout={() => setSession(null)} />
       <section className="entity-hero">
         <div>
-          <p className="eyebrow">Partido</p>
+          <p className="eyebrow">Match</p>
           <h1>
             {match.playerA} vs {match.playerB}
           </h1>
@@ -181,8 +181,8 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
 
       <section className="panel">
         <div className="panel-header">
-          <p className="section-kicker">Detalle</p>
-          <h2>Estado del partido</h2>
+          <p className="section-kicker">Details</p>
+          <h2>Match status</h2>
         </div>
         <div className="stack-list">
           <div className="info-card">
@@ -199,7 +199,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                     <span>{match.playerA}</span>
                     <div className="score-stepper">
                       <button
-                        aria-label={`Restar game a ${match.playerA} en el set ${index + 1}`}
+                        aria-label={`Subtract a game from ${match.playerA} in set ${index + 1}`}
                         disabled={!canEditSets || set.pairAGames <= 0}
                         onClick={() => handleAdjustSetGames(set.id, "pairA", set.pairAGames, -1)}
                         type="button"
@@ -208,7 +208,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                       </button>
                       <strong>{set.pairAGames}</strong>
                       <button
-                        aria-label={`Sumar game a ${match.playerA} en el set ${index + 1}`}
+                        aria-label={`Add a game to ${match.playerA} in set ${index + 1}`}
                         disabled={!canEditSets || set.pairAGames >= 99}
                         onClick={() => handleAdjustSetGames(set.id, "pairA", set.pairAGames, 1)}
                         type="button"
@@ -221,7 +221,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                     <span>{match.playerB}</span>
                     <div className="score-stepper">
                       <button
-                        aria-label={`Restar game a ${match.playerB} en el set ${index + 1}`}
+                        aria-label={`Subtract a game from ${match.playerB} in set ${index + 1}`}
                         disabled={!canEditSets || set.pairBGames <= 0}
                         onClick={() => handleAdjustSetGames(set.id, "pairB", set.pairBGames, -1)}
                         type="button"
@@ -230,7 +230,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                       </button>
                       <strong>{set.pairBGames}</strong>
                       <button
-                        aria-label={`Sumar game a ${match.playerB} en el set ${index + 1}`}
+                        aria-label={`Add a game to ${match.playerB} in set ${index + 1}`}
                         disabled={!canEditSets || set.pairBGames >= 99}
                         onClick={() => handleAdjustSetGames(set.id, "pairB", set.pairBGames, 1)}
                         type="button"
@@ -246,7 +246,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                       onClick={() => handleDeleteSet(set.id)}
                       type="button"
                     >
-                      Borrar
+                      Delete
                     </button>
                   ) : null}
                 </div>
@@ -259,20 +259,20 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                 onClick={handleAddSet}
                 type="button"
               >
-                Agregar set
+                Add set
               </button>
             ) : null}
-            <p className="field-help">Minimo 1 set, maximo 5. Games de 0 a 99.</p>
+            <p className="field-help">Minimum 1 set, maximum 5. Games go from 0 to 99.</p>
           </div>
           <div className="info-card">
-            <h3>Estado</h3>
+            <h3>Status</h3>
             <p>{formatMatchStatus(match.status)}</p>
             <p className="field-help">
-              {match.finalizationAcceptedBy.length} de 4 jugadores aceptaron el resultado.
+              {match.finalizationAcceptedBy.length} out of 4 players accepted the result.
             </p>
           </div>
           <div className="info-card">
-            <h3>Jugadores del partido</h3>
+            <h3>Match players</h3>
             <div className="match-player-list">
               {matchPlayers.map((player) => {
                 const accepted = match.finalizationAcceptedBy.includes(player.email);
@@ -280,7 +280,7 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                 return (
                   <div className="match-player-row" key={player.email}>
                     <span
-                      aria-label={accepted ? "Acepto el resultado" : "Pendiente de aceptar"}
+                      aria-label={accepted ? "Accepted result" : "Pending acceptance"}
                       className={accepted ? "status-icon accepted" : "status-icon pending"}
                       role="img"
                     >
@@ -301,20 +301,20 @@ export function MatchDetail({ matchId }: MatchDetailProps) {
                 onClick={handleAcceptResult}
                 type="button"
               >
-                {hasAcceptedResult ? "Resultado aceptado" : "Aceptar resultado y finalizar"}
+                {hasAcceptedResult ? "Result accepted" : "Accept result and finish"}
               </button>
             ) : (
-              <p className="field-help">Solo los jugadores de este partido pueden finalizarlo.</p>
+              <p className="field-help">Only the players in this match can finish it.</p>
             )}
           </div>
           {matchPlayers.length < 4 ? (
             <p className="notice notice-error">
-              Este partido necesita 4 jugadores para poder finalizarse.
+              This match needs 4 players before it can be finished.
             </p>
           ) : null}
           {notice ? <p className={`notice notice-${noticeTone}`}>{notice}</p> : null}
           <Link className="secondary-button inline-action" href={`/torneos/${tournament.id}`}>
-            Volver al torneo
+            Back to tournament
           </Link>
         </div>
       </section>

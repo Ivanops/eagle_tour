@@ -146,7 +146,7 @@ type MatchAcceptanceRecord = {
 
 function formatScore(sets: MatchSet[]) {
   if (!sets.length) {
-    return "Por jugarse";
+    return "Pending";
   }
 
   return sets.map((set) => `${set.pairAGames}-${set.pairBGames}`).join(", ");
@@ -392,7 +392,7 @@ function getCloseRestrictionFromPlayers(tournament: Tournament, players: Registe
   const totalPlayers = counts.femenino + counts.masculino;
 
   if (totalPlayers === 0) {
-    return "No puedes cerrar un torneo sin jugadores inscritos.";
+    return "You cannot close a tournament with no registered players.";
   }
 
   if (tournament.gender === "mixto") {
@@ -403,7 +403,7 @@ function getCloseRestrictionFromPlayers(tournament: Tournament, players: Registe
       return "";
     }
 
-    return `Para cerrar un torneo mixto necesitas la misma cantidad de mujeres y hombres, y que ambas cantidades sean multiplos de 2. Ahora hay ${counts.femenino} mujeres y ${counts.masculino} hombres.`;
+    return `To close a mixed tournament you need the same number of women and men, and both counts must be multiples of 2. Right now there are ${counts.femenino} women and ${counts.masculino} men.`;
   }
 
   const playerCount = counts[tournament.gender];
@@ -412,7 +412,7 @@ function getCloseRestrictionFromPlayers(tournament: Tournament, players: Registe
     return "";
   }
 
-  return `Para cerrar un torneo ${localTennisStore.formatGender(tournament.gender).toLowerCase()} la cantidad de jugadores debe ser multiplo de 4. Ahora hay ${playerCount}.`;
+  return `To close a ${localTennisStore.formatGender(tournament.gender).toLowerCase()} tournament, the player count must be a multiple of 4. Right now there are ${playerCount}.`;
 }
 
 function buildSingleGenderMatchInputs(tournament: Tournament, players: ProfileRecord[]) {
@@ -569,7 +569,7 @@ export async function createPlayer(
   }
 
   if (!data.user) {
-    return { ok: false as const, message: "Supabase no devolvio el usuario creado." };
+    return { ok: false as const, message: "Supabase did not return the created user." };
   }
 
   const player: RegisteredPlayer = {
@@ -587,7 +587,7 @@ export async function createPlayer(
       ok: true as const,
       player,
       requiresEmailVerification: false,
-      message: "Cuenta creada. Revisa tu email para confirmar la cuenta antes de iniciar sesion.",
+      message: "Account created. Check your email to confirm the account before signing in.",
     };
   }
 
@@ -610,7 +610,7 @@ export async function createPlayer(
     player: toRegisteredPlayer(profileResult.profile),
     session,
     requiresEmailVerification: false,
-    message: `Cuenta creada. Bienvenido, ${session.name}.`,
+    message: `Account created. Welcome, ${session.name}.`,
   };
 }
 
@@ -619,7 +619,7 @@ export function verifyPlayerEmail() {
 
   return {
     ok: false as const,
-    message: "Con Supabase la verificacion se hace desde el email de confirmacion.",
+    message: "With Supabase, verification happens through the confirmation email.",
   };
 }
 
@@ -633,7 +633,7 @@ export async function loginPlayer(email: string, password: string) {
   });
 
   if (error || !data.user) {
-    return { ok: false as const, message: error?.message ?? "Credenciales invalidas." };
+    return { ok: false as const, message: error?.message ?? "Invalid credentials." };
   }
 
   let profile = await readProfileById(data.user.id);
@@ -658,7 +658,7 @@ export async function loginPlayer(email: string, password: string) {
   const session = toSessionPlayer(profile);
   cacheSession(session);
 
-  return { ok: true as const, session, message: `Sesion iniciada. Bienvenido, ${session.name}.` };
+  return { ok: true as const, session, message: `Signed in. Welcome, ${session.name}.` };
 }
 
 export async function updatePlayerProfile(
@@ -671,17 +671,17 @@ export async function updatePlayerProfile(
   const nextName = input.name.trim();
 
   if (!currentSession || currentSession.email !== email.trim().toLowerCase()) {
-    return { ok: false as const, message: "Inicia sesion para editar tu perfil." };
+    return { ok: false as const, message: "Sign in to edit your profile." };
   }
 
   if (!nextName) {
-    return { ok: false as const, message: "El nombre no puede quedar vacio." };
+    return { ok: false as const, message: "Name cannot be empty." };
   }
 
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) {
     cacheSession(null);
-    return { ok: false as const, message: "Tu sesion de Supabase expiro. Vuelve a iniciar sesion." };
+    return { ok: false as const, message: "Your Supabase session expired. Sign in again." };
   }
 
   const { data, error } = await supabase
@@ -706,7 +706,7 @@ export async function updatePlayerProfile(
   });
   cacheSession(toSessionPlayer(player));
 
-  return { ok: true as const, player, message: "Perfil actualizado." };
+  return { ok: true as const, player, message: "Profile updated." };
 }
 
 export async function readPlayers() {
@@ -857,13 +857,13 @@ export async function createTournament(input: CreateTournamentInput) {
   if (!localTennisStore.canCreateTournaments(input.creator)) {
     return {
       ok: false as const,
-      message: "Necesitas permiso de un super usuario para crear torneos.",
+      message: "You need permission from a super user to create tournaments.",
     };
   }
 
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) {
-    return { ok: false as const, message: "Inicia sesion para crear torneos." };
+    return { ok: false as const, message: "Sign in to create tournaments." };
   }
 
   const { count, error: countError } = await supabase
@@ -878,7 +878,7 @@ export async function createTournament(input: CreateTournamentInput) {
   if ((count ?? 0) >= localTennisStore.MAX_TOURNAMENTS_PER_CREATOR) {
     return {
       ok: false as const,
-      message: `Puedes crear hasta ${localTennisStore.MAX_TOURNAMENTS_PER_CREATOR} torneos como maximo.`,
+      message: `You can create up to ${localTennisStore.MAX_TOURNAMENTS_PER_CREATOR} tournaments.`,
     };
   }
 
@@ -918,7 +918,7 @@ export async function createTournament(input: CreateTournamentInput) {
   return {
     ok: true as const,
     tournament,
-    message: `Torneo creado: ${tournament.name}. Agrega jugadores desde la gestion del torneo.`,
+    message: `Tournament created: ${tournament.name}. Add players from tournament management.`,
   };
 }
 
@@ -927,11 +927,11 @@ export async function deleteTournament(tournamentId: string, player: SessionPlay
 
   const tournament = (await readTournaments()).find((entry) => entry.id === tournamentId);
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede borrar el torneo." };
+    return { ok: false as const, message: "Only the creator can delete the tournament." };
   }
 
   const { error } = await supabase.from("tournaments").delete().eq("id", tournamentId);
@@ -940,7 +940,7 @@ export async function deleteTournament(tournamentId: string, player: SessionPlay
     return { ok: false as const, message: error.message };
   }
 
-  return { ok: true as const, message: "Torneo borrado." };
+  return { ok: true as const, message: "Tournament deleted." };
 }
 
 export async function joinTournament(
@@ -954,7 +954,7 @@ export async function joinTournament(
 
   return {
     ok: false as const,
-    message: "La inscripcion la realiza el creador del torneo.",
+    message: "Tournament registration is handled by the creator.",
   };
 }
 
@@ -969,32 +969,32 @@ export async function assignTournamentPlayer(
   const tournament = (await readTournaments()).find((entry) => entry.id === tournamentId);
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   if (tournament.creatorEmail !== actor.email) {
-    return { ok: false as const, message: "Solo el creador puede agregar jugadores." };
+    return { ok: false as const, message: "Only the creator can add players." };
   }
 
   if (tournament.status !== "abierto") {
-    return { ok: false as const, message: "Solo puedes agregar jugadores mientras el torneo esta abierto." };
+    return { ok: false as const, message: "You can only add players while the tournament is open." };
   }
 
   const profiles = await readProfileRecords();
   const targetProfile = profiles.find((profile) => profile.email === normalizedTargetEmail);
 
   if (!targetProfile) {
-    return { ok: false as const, message: "No encontramos ese jugador." };
+    return { ok: false as const, message: "We could not find that player." };
   }
 
   if (tournament.playerEmails.includes(targetProfile.email)) {
-    return { ok: true as const, tournament, message: `${targetProfile.name} ya estaba anotado.` };
+    return { ok: true as const, tournament, message: `${targetProfile.name} was already registered.` };
   }
 
   if (tournament.gender !== "mixto" && tournament.gender !== targetProfile.gender) {
     return {
       ok: false as const,
-      message: `Este torneo es ${localTennisStore.formatGender(tournament.gender)}. ${targetProfile.name} figura como ${localTennisStore.formatGender(targetProfile.gender)}.`,
+      message: `This tournament is ${localTennisStore.formatGender(tournament.gender)}. ${targetProfile.name} is listed as ${localTennisStore.formatGender(targetProfile.gender)}.`,
     };
   }
 
@@ -1013,7 +1013,7 @@ export async function assignTournamentPlayer(
       ...tournament,
       playerEmails: [...tournament.playerEmails, targetProfile.email],
     },
-    message: `${targetProfile.name} fue agregado al torneo.`,
+    message: `${targetProfile.name} was added to the tournament.`,
   };
 }
 
@@ -1028,26 +1028,26 @@ export async function removeTournamentPlayer(
   const tournament = (await readTournaments()).find((entry) => entry.id === tournamentId);
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   if (tournament.creatorEmail !== actor.email) {
-    return { ok: false as const, message: "Solo el creador puede remover jugadores." };
+    return { ok: false as const, message: "Only the creator can remove players." };
   }
 
   if (tournament.status !== "abierto") {
-    return { ok: false as const, message: "Solo puedes remover jugadores mientras el torneo esta abierto." };
+    return { ok: false as const, message: "You can only remove players while the tournament is open." };
   }
 
   const profiles = await readProfileRecords();
   const targetProfile = profiles.find((profile) => profile.email === normalizedTargetEmail);
 
   if (!targetProfile) {
-    return { ok: false as const, message: "No encontramos ese jugador." };
+    return { ok: false as const, message: "We could not find that player." };
   }
 
   if (!tournament.playerEmails.includes(targetProfile.email)) {
-    return { ok: true as const, tournament, message: `${targetProfile.name} no estaba anotado.` };
+    return { ok: true as const, tournament, message: `${targetProfile.name} was not registered.` };
   }
 
   const { error } = await supabase
@@ -1066,7 +1066,7 @@ export async function removeTournamentPlayer(
       ...tournament,
       playerEmails: tournament.playerEmails.filter((email) => email !== targetProfile.email),
     },
-    message: `${targetProfile.name} fue removido del torneo.`,
+    message: `${targetProfile.name} was removed from the tournament.`,
   };
 }
 
@@ -1103,8 +1103,8 @@ async function createMatchesForTournament(tournament: Tournament) {
     .insert(
       matchInputs.map((match, index) => ({
         tournament_id: tournament.id,
-        round: `Partido ${index + 1}`,
-        court: "Cancha por confirmar",
+        round: `Match ${index + 1}`,
+        court: "Court to be confirmed",
         starts_at: startsAt,
         pair_a_player_1_id: match.pairA[0].id,
         pair_a_player_2_id: match.pairA[1].id,
@@ -1144,28 +1144,28 @@ export async function updateTournamentStatus(
   const tournament = tournaments.find((entry) => entry.id === tournamentId);
 
   if (!tournament) {
-    return { ok: false as const, message: "No encontramos este torneo." };
+    return { ok: false as const, message: "We could not find this tournament." };
   }
 
   if (tournament.creatorEmail !== player.email) {
-    return { ok: false as const, message: "Solo el creador puede editar el estado del torneo." };
+    return { ok: false as const, message: "Only the creator can edit the tournament status." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (tournament.status === "cerrado" && status !== "finalizado") {
     return {
       ok: false as const,
-      message: "Un torneo cerrado solo puede finalizarse cuando todos sus partidos esten finalizados.",
+      message: "A closed tournament can only be finished when all its matches are completed.",
     };
   }
 
   if (tournament.status === status) {
     return {
       ok: false as const,
-      message: `El torneo ya esta ${localTennisStore.formatTournamentStatus(status).toLowerCase()}.`,
+      message: `The tournament is already ${localTennisStore.formatTournamentStatus(status).toLowerCase()}.`,
     };
   }
 
@@ -1188,7 +1188,7 @@ export async function updateTournamentStatus(
     if (!matches.length || matches.some((match) => match.status !== "finalizado")) {
       return {
         ok: false as const,
-        message: "Para finalizar el torneo, todos sus partidos deben estar finalizados.",
+        message: "To finish the tournament, all its matches must be completed.",
       };
     }
   }
@@ -1208,7 +1208,7 @@ export async function updateTournamentStatus(
     matchIds: tournament.matchIds,
   };
 
-  return { ok: true as const, tournament: nextTournament, message: "Estado del torneo actualizado." };
+  return { ok: true as const, tournament: nextTournament, message: "Tournament status updated." };
 }
 
 export async function updateMatchStatus(
@@ -1219,7 +1219,7 @@ export async function updateMatchStatus(
   requireSupabaseEnv();
 
   if (status !== "finalizado") {
-    return { ok: false as const, message: "El partido solo puede finalizarse con la aceptacion de los 4 jugadores." };
+    return { ok: false as const, message: "This match can only be finished after all 4 players accept the result." };
   }
 
   const matches = await readMatches();
@@ -1227,24 +1227,24 @@ export async function updateMatchStatus(
   const tournament = (await readTournaments()).find((entry) => entry.id === match?.tournamentId);
 
   if (!match || !tournament) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden aceptar el resultado." };
+    return { ok: false as const, message: "Only players in this match can accept the result." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: true as const, match, message: "Este partido ya esta finalizado." };
+    return { ok: true as const, match, message: "This match is already finished." };
   }
 
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) {
-    return { ok: false as const, message: "Inicia sesion para aceptar el resultado." };
+    return { ok: false as const, message: "Sign in to accept the result." };
   }
 
   const { error } = await supabase.from("match_acceptances").upsert({
@@ -1291,8 +1291,8 @@ export async function updateMatchStatus(
     ok: true as const,
     match: updatedMatch,
     message: isFinalized
-      ? "Los 4 jugadores aceptaron el resultado. Partido finalizado."
-      : `Resultado aceptado. Faltan ${4 - acceptances.length} jugadores.`,
+      ? "All 4 players accepted the result. Match finished."
+      : `Result accepted. ${4 - acceptances.length} players still missing.`,
   };
 }
 
@@ -1309,19 +1309,19 @@ export async function updateMatchSetGames(
   const tournament = (await readTournaments()).find((entry) => entry.id === match?.tournamentId);
 
   if (!match || !tournament) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden editar los sets." };
+    return { ok: false as const, message: "Only players in this match can edit sets." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This match is already finished and cannot be changed." };
   }
 
   const hadAcceptedResults = match.finalizationAcceptedBy.length > 0;
@@ -1344,8 +1344,8 @@ export async function updateMatchSetGames(
       status: "por_jugar" as const,
     },
     message: hadAcceptedResults
-      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
-      : "Set actualizado.",
+      ? `${player.name} changed the score. Acceptances were reset so players can confirm the new result.`
+      : "Set updated.",
   };
 }
 
@@ -1356,23 +1356,23 @@ export async function addMatchSet(matchId: string, player: SessionPlayer) {
   const tournament = (await readTournaments()).find((entry) => entry.id === match?.tournamentId);
 
   if (!match || !tournament) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden agregar sets." };
+    return { ok: false as const, message: "Only players in this match can add sets." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This match is already finished and cannot be changed." };
   }
 
   if (match.sets.length >= 5) {
-    return { ok: false as const, message: "Un partido puede tener hasta 5 sets." };
+    return { ok: false as const, message: "A match can have up to 5 sets." };
   }
 
   const { error } = await supabase.from("match_sets").insert({
@@ -1391,8 +1391,8 @@ export async function addMatchSet(matchId: string, player: SessionPlayer) {
     ok: true as const,
     match,
     message: match.finalizationAcceptedBy.length > 0
-      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
-      : "Set agregado.",
+      ? `${player.name} changed the score. Acceptances were reset so players can confirm the new result.`
+      : "Set added.",
   };
 }
 
@@ -1403,23 +1403,23 @@ export async function deleteMatchSet(matchId: string, player: SessionPlayer, set
   const tournament = (await readTournaments()).find((entry) => entry.id === match?.tournamentId);
 
   if (!match || !tournament) {
-    return { ok: false as const, message: "No encontramos este partido." };
+    return { ok: false as const, message: "We could not find this match." };
   }
 
   if (!match.playerEmails.includes(player.email)) {
-    return { ok: false as const, message: "Solo los jugadores de este partido pueden borrar sets." };
+    return { ok: false as const, message: "Only players in this match can delete sets." };
   }
 
   if (tournament.status === "finalizado") {
-    return { ok: false as const, message: "Este torneo ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This tournament is already finished and cannot be changed." };
   }
 
   if (match.status === "finalizado") {
-    return { ok: false as const, message: "Este partido ya esta finalizado y no se puede modificar." };
+    return { ok: false as const, message: "This match is already finished and cannot be changed." };
   }
 
   if (match.sets.length <= 1) {
-    return { ok: false as const, message: "El partido debe tener al menos 1 set." };
+    return { ok: false as const, message: "A match must have at least 1 set." };
   }
 
   const { error } = await supabase.from("match_sets").delete().eq("id", setId);
@@ -1443,8 +1443,8 @@ export async function deleteMatchSet(matchId: string, player: SessionPlayer, set
     ok: true as const,
     match,
     message: match.finalizationAcceptedBy.length > 0
-      ? `${player.name} modifico el resultado. Las aceptaciones se reiniciaron para confirmar el nuevo resultado.`
-      : "Set borrado.",
+      ? `${player.name} changed the score. Acceptances were reset so players can confirm the new result.`
+      : "Set deleted.",
   };
 }
 
@@ -1456,7 +1456,7 @@ export async function updateTournamentCreationPermission(
   requireSupabaseEnv();
 
   if (actor.role !== "super") {
-    return { ok: false as const, message: "Solo un super usuario puede cambiar permisos." };
+    return { ok: false as const, message: "Only a super user can change permissions." };
   }
 
   const nextRole: PlayerRole = canCreate ? "organizer" : "player";
@@ -1483,8 +1483,8 @@ export async function updateTournamentCreationPermission(
     ok: true as const,
     player,
     message: canCreate
-      ? `${player.name} ahora puede crear torneos.`
-      : `${player.name} ya no puede crear torneos.`,
+      ? `${player.name} can now create tournaments.`
+      : `${player.name} can no longer create tournaments.`,
   };
 }
 

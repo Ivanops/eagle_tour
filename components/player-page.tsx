@@ -110,47 +110,47 @@ export function PlayerPage() {
       <AppNav session={session} onLogout={() => setSession(null)} />
       <section className="entity-hero">
         <div>
-          <p className="eyebrow">Jugador</p>
+          <p className="eyebrow">Player</p>
           <h1>{session.name}</h1>
           <p>{session.email}</p>
         </div>
         <div className="entity-meta">
-          <span>{session.verified ? "Email verificado" : "Email pendiente"}</span>
+          <span>{session.verified ? "Email verified" : "Email pending"}</span>
           <span>{formatGender(session.gender)}</span>
           <span>{formatPlayerRole(session.role)}</span>
-          <strong>{tournaments.length} torneos</strong>
-          <strong>{createdTournaments.length} creados</strong>
+          <strong>{tournaments.length} tournaments</strong>
+          <strong>{createdTournaments.length} created</strong>
         </div>
       </section>
 
       <section className="content-grid auth-grid player-profile-grid">
         <article className="panel">
           <div className="panel-header">
-            <p className="section-kicker">Perfil</p>
-            <h2>Datos del jugador</h2>
+            <p className="section-kicker">Profile</p>
+            <h2>Player details</h2>
           </div>
           <form className="auth-form" onSubmit={handleUpdateProfile}>
             <label>
-              Nombre visible
+              Display name
               <input
                 onChange={(event) => setPlayerName(event.target.value)}
-                placeholder="Ej: Lucia Navarro"
+                placeholder="Ex: Lucia Navarro"
                 type="text"
                 value={playerName}
               />
             </label>
             <label>
-              Genero
+              Gender
               <select
                 onChange={(event) => setGender(event.target.value as PlayerGender)}
                 value={gender}
               >
-                <option value="femenino">Femenino</option>
-                <option value="masculino">Masculino</option>
+                <option value="femenino">Female</option>
+                <option value="masculino">Male</option>
               </select>
             </label>
             <button className="primary-button submit-button" type="submit">
-              Guardar perfil
+              Save profile
             </button>
           </form>
           {notice ? <p className={`notice notice-${noticeTone}`}>{notice}</p> : null}
@@ -158,8 +158,8 @@ export function PlayerPage() {
 
         <article className="panel">
           <div className="panel-header">
-            <p className="section-kicker">Torneos</p>
-            <h2>Estoy anotado</h2>
+            <p className="section-kicker">Tournaments</p>
+            <h2>Joined</h2>
           </div>
           <div className="stack-list">
             {tournaments.length ? tournaments.map((tournament) => (
@@ -167,14 +167,14 @@ export function PlayerPage() {
                 <h3>{tournament.name}</h3>
                 <p>{tournament.date}</p>
               </Link>
-            )) : <p className="notice">Todavia no estas anotado en torneos.</p>}
+            )) : <p className="notice">You have not joined any tournaments yet.</p>}
           </div>
         </article>
 
         <article className="panel">
           <div className="panel-header">
-            <p className="section-kicker">Torneos</p>
-            <h2>Creados por mi</h2>
+            <p className="section-kicker">Tournaments</p>
+            <h2>Created by me</h2>
           </div>
           <div className="stack-list">
             {createdTournaments.length ? createdTournaments.map((tournament) => (
@@ -183,14 +183,14 @@ export function PlayerPage() {
                 <p>{tournament.date}</p>
                 <span>{formatTournamentStatus(tournament.status)}</span>
               </Link>
-            )) : <p className="notice">Todavia no creaste torneos.</p>}
+            )) : <p className="notice">You have not created any tournaments yet.</p>}
           </div>
         </article>
 
         <article className="panel panel-accent">
           <div className="panel-header">
-            <p className="section-kicker">Partidos</p>
-            <h2>Mis partidos</h2>
+            <p className="section-kicker">Matches</p>
+            <h2>My matches</h2>
           </div>
           <div className="stack-list">
             {matches.map((match) => (
