@@ -59,6 +59,13 @@ create table if not exists public.tournaments (
   updated_at timestamptz not null default now()
 );
 
+alter table public.tournaments
+drop constraint if exists tournaments_access_code_format_check;
+
+alter table public.tournaments
+add constraint tournaments_access_code_format_check
+check (access_code ~ '^[0-9]{4}$') not valid;
+
 create table if not exists public.tournament_players (
   tournament_id uuid not null references public.tournaments (id) on delete cascade,
   player_id uuid not null references public.profiles (id) on delete cascade,
@@ -210,21 +217,22 @@ using (true);
 
 drop policy if exists "Users can join themselves to tournaments" on public.tournament_players;
 drop policy if exists "Tournament creators can assign players" on public.tournament_players;
-create policy "Tournament creators can assign players"
+create policy "Users can join themselves to tournaments"
 on public.tournament_players for insert
 to authenticated
 with check (
-  exists (
+  auth.uid() = player_id
+  and exists (
     select 1
     from public.tournaments
     where tournaments.id = tournament_players.tournament_id
-      and tournaments.creator_id = auth.uid()
       and tournaments.status = 'abierto'
   )
 );
 
 drop policy if exists "Tournament creators can remove players" on public.tournament_players;
-create policy "Tournament creators can remove players"
+drop policy if exists "Creators or players can remove tournament players" on public.tournament_players;
+create policy "Creators or players can remove tournament players"
 on public.tournament_players for delete
 to authenticated
 using (
@@ -232,8 +240,11 @@ using (
     select 1
     from public.tournaments
     where tournaments.id = tournament_players.tournament_id
-      and tournaments.creator_id = auth.uid()
       and tournaments.status = 'abierto'
+      and (
+        tournaments.creator_id = auth.uid()
+        or tournament_players.player_id = auth.uid()
+      )
   )
 );
 

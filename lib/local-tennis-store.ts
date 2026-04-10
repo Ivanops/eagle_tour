@@ -90,6 +90,7 @@ const KEYS = {
 
 export const MAX_TOURNAMENTS_PER_CREATOR = 10;
 const DEMO_DATA_VERSION = "partial-standings-demo-v1";
+const TOURNAMENT_PASSWORD_PATTERN = /^\d{4}$/;
 
 const defaultPlayers: RegisteredPlayer[] = [
   {
@@ -175,7 +176,7 @@ const defaultTournaments: Tournament[] = [
     level: "Avanzado",
     gender: "femenino",
     status: "abierto",
-    password: "clay2026",
+    password: "2026",
     creatorEmail: "lucia@tennisapp.com",
     playerEmails: [
       "lucia@tennisapp.com",
@@ -193,7 +194,7 @@ const defaultTournaments: Tournament[] = [
     level: "Intermedio",
     gender: "mixto",
     status: "cerrado",
-    password: "barca",
+    password: "2468",
     creatorEmail: "lucia@tennisapp.com",
     playerEmails: [
       "lucia@tennisapp.com",
@@ -215,7 +216,7 @@ const defaultTournaments: Tournament[] = [
     level: "Open",
     gender: "mixto",
     status: "finalizado",
-    password: "roma",
+    password: "1357",
     creatorEmail: "mateo@tennisapp.com",
     playerEmails: [
       "lucia@tennisapp.com",
@@ -411,6 +412,14 @@ function normalizeTournamentStatus(status: unknown): TournamentStatus {
 
 function normalizeMatchStatus(status: unknown): MatchStatus {
   return status === "finalizado" || status === "finished" ? "finalizado" : "por_jugar";
+}
+
+function normalizeTournamentPassword(password: string) {
+  return password.trim();
+}
+
+function isValidTournamentPassword(password: string) {
+  return TOURNAMENT_PASSWORD_PATTERN.test(normalizeTournamentPassword(password));
 }
 
 function getUniqueEmails(emails: unknown[]) {
@@ -1106,6 +1115,13 @@ export function createTournament(input: CreateTournamentInput) {
     };
   }
 
+  if (!isValidTournamentPassword(input.password)) {
+    return {
+      ok: false as const,
+      message: "Tournament password must be exactly 4 digits.",
+    };
+  }
+
   const tournamentId = makeId(input.name);
   const tournamentDate = input.date.trim() || "Date to be confirmed";
 
@@ -1117,7 +1133,7 @@ export function createTournament(input: CreateTournamentInput) {
     level: input.level.trim(),
     gender: input.gender,
     status: "abierto",
-    password: input.password,
+    password: normalizeTournamentPassword(input.password),
     creatorEmail: input.creator.email,
     playerEmails: [],
     matchIds: [],
@@ -1128,7 +1144,7 @@ export function createTournament(input: CreateTournamentInput) {
   return {
     ok: true as const,
     tournament,
-    message: `Tournament created: ${tournament.name}. Add players from tournament management.`,
+    message: `Tournament created: ${tournament.name}. Share its 4-digit password with players so they can join.`,
   };
 }
 
@@ -1151,13 +1167,51 @@ export function deleteTournament(tournamentId: string, player: SessionPlayer) {
 }
 
 export function joinTournament(tournamentId: string, player: SessionPlayer, password: string) {
-  void tournamentId;
-  void player;
-  void password;
+  const tournaments = readTournaments();
+  const index = tournaments.findIndex((entry) => entry.id === tournamentId);
+
+  if (index === -1) {
+    return { ok: false as const, message: "We could not find this tournament." };
+  }
+
+  const tournament = tournaments[index];
+  const normalizedPassword = normalizeTournamentPassword(password);
+
+  if (tournament.status !== "abierto") {
+    return { ok: false as const, message: "You can only join while the tournament is open." };
+  }
+
+  if (!isValidTournamentPassword(normalizedPassword)) {
+    return { ok: false as const, message: "Enter the 4-digit tournament password." };
+  }
+
+  if (tournament.playerEmails.includes(player.email)) {
+    return { ok: true as const, tournament, message: "You are already registered in this tournament." };
+  }
+
+  if (tournament.gender !== "mixto" && tournament.gender !== player.gender) {
+    return {
+      ok: false as const,
+      message: `This tournament is ${formatGender(tournament.gender)}. Your profile is listed as ${formatGender(player.gender)}.`,
+    };
+  }
+
+  if (tournament.password !== normalizedPassword) {
+    return { ok: false as const, message: "Incorrect tournament password." };
+  }
+
+  const updatedTournament: Tournament = {
+    ...tournament,
+    playerEmails: [...tournament.playerEmails, player.email],
+  };
+  const nextTournaments = [...tournaments];
+  nextTournaments[index] = updatedTournament;
+  saveTournaments(nextTournaments);
 
   return {
-    ok: false as const,
-    message: "Tournament registration is handled by the creator.",
+    ok: true as const,
+    tournament: updatedTournament,
+    message: "You joined the tournament.",
   };
 }
 
@@ -1226,12 +1280,8 @@ export function removeTournamentPlayer(
 
   const tournament = tournaments[index];
 
-  if (tournament.creatorEmail !== actor.email) {
-    return { ok: false as const, message: "Only the creator can remove players." };
-  }
-
   if (tournament.status !== "abierto") {
-    return { ok: false as const, message: "You can only remove players while the tournament is open." };
+    return { ok: false as const, message: "You can only change registrations while the tournament is open." };
   }
 
   const targetPlayer = players.find((player) => player.email === targetEmail.trim().toLowerCase());
@@ -1239,8 +1289,21 @@ export function removeTournamentPlayer(
     return { ok: false as const, message: "We could not find that player." };
   }
 
+  const isCreator = tournament.creatorEmail === actor.email;
+  const isLeavingSelf = actor.email === targetPlayer.email;
+
+  if (!isCreator && !isLeavingSelf) {
+    return { ok: false as const, message: "Only the creator can remove other players." };
+  }
+
   if (!tournament.playerEmails.includes(targetPlayer.email)) {
-    return { ok: true as const, tournament, message: `${targetPlayer.name} was not registered.` };
+    return {
+      ok: true as const,
+      tournament,
+      message: isLeavingSelf
+        ? "You were not registered in this tournament."
+        : `${targetPlayer.name} was not registered.`,
+    };
   }
 
   const updatedTournament: Tournament = {
@@ -1251,7 +1314,13 @@ export function removeTournamentPlayer(
   nextTournaments[index] = updatedTournament;
   saveTournaments(nextTournaments);
 
-  return { ok: true as const, tournament: updatedTournament, message: `${targetPlayer.name} was removed from the tournament.` };
+  return {
+    ok: true as const,
+    tournament: updatedTournament,
+    message: isLeavingSelf
+      ? "You left the tournament."
+      : `${targetPlayer.name} was removed from the tournament.`,
+  };
 }
 
 export function updateTournamentStatus(

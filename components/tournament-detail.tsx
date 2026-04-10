@@ -1,19 +1,18 @@
 "use client";
 
 import { Link } from "../lib/router";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AppNav } from "./app-nav";
 import { AuthPanel } from "./auth-panel";
 import {
-  assignTournamentPlayer,
   calculateTournamentStandings,
   deleteTournament,
   formatGender,
   formatMatchStatus,
   formatTournamentStatus,
   getTournamentCloseRestriction,
+  joinTournament,
   readMatches,
-  readPlayers,
   readSession,
   readTournamentPlayers,
   readTournaments,
@@ -32,22 +31,18 @@ type TournamentDetailProps = {
 };
 
 type NoticeTone = "success" | "error";
-const PLAYER_PAGE_SIZE = 10;
-const ALPHABET_FILTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const [session, setSession] = useState<SessionPlayer | null>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<TennisMatch[]>([]);
   const [players, setPlayers] = useState<RegisteredPlayer[]>([]);
-  const [allPlayers, setAllPlayers] = useState<RegisteredPlayer[]>([]);
   const [standings, setStandings] = useState<TournamentStandingRow[]>([]);
+  const [joinPassword, setJoinPassword] = useState("");
   const [joinNotice, setJoinNotice] = useState("");
   const [managementNotice, setManagementNotice] = useState("");
   const [joinNoticeTone, setJoinNoticeTone] = useState<NoticeTone>("success");
   const [managementNoticeTone, setManagementNoticeTone] = useState<NoticeTone>("success");
-  const [playerFilterLetter, setPlayerFilterLetter] = useState<string>("ALL");
-  const [playerPage, setPlayerPage] = useState(1);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,10 +60,9 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   }, [tournamentId]);
 
   async function refreshTournament(isMounted = true) {
-    const [tournaments, allMatches, nextAllPlayers] = await Promise.all([
+    const [tournaments, allMatches] = await Promise.all([
       readTournaments(),
       readMatches(),
-      readPlayers(),
     ]);
     const currentTournament = tournaments.find((entry) => entry.id === tournamentId) ?? null;
 
@@ -76,7 +70,6 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
       return;
     }
 
-    setAllPlayers(nextAllPlayers);
     setTournament(currentTournament);
     if (currentTournament) {
       const tournamentMatches = allMatches.filter((match) => currentTournament.matchIds.includes(match.id));
@@ -99,17 +92,20 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     }
   }
 
-  async function handleAssignPlayer(targetEmail: string) {
+  async function handleJoinTournament(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     if (!session) {
       return;
     }
 
-    const result = await assignTournamentPlayer(tournamentId, session, targetEmail);
-    setManagementNoticeTone(result.ok ? "success" : "error");
-    setManagementNotice(result.message);
-    setJoinNotice("");
+    const result = await joinTournament(tournamentId, session, joinPassword);
+    setJoinNoticeTone(result.ok ? "success" : "error");
+    setJoinNotice(result.message);
+    setManagementNotice("");
 
     if (result.ok) {
+      setJoinPassword("");
       await refreshTournament();
     }
   }
@@ -120,9 +116,17 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
     }
 
     const result = await removeTournamentPlayer(tournamentId, session, targetEmail);
-    setManagementNoticeTone(result.ok ? "success" : "error");
-    setManagementNotice(result.message);
-    setJoinNotice("");
+    const isLeavingSelf = targetEmail === session.email && !isCreator;
+
+    if (isLeavingSelf) {
+      setJoinNoticeTone(result.ok ? "success" : "error");
+      setJoinNotice(result.message);
+      setManagementNotice("");
+    } else {
+      setManagementNoticeTone(result.ok ? "success" : "error");
+      setManagementNotice(result.message);
+      setJoinNotice("");
+    }
 
     if (result.ok) {
       await refreshTournament();
@@ -174,40 +178,12 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
   const canFinish = tournament?.status === "cerrado";
   const hasFinalizedMatches = matches.some((match) => match.status === "finalizado");
   const standingsAreFinal = tournament?.status === "finalizado";
+  const canLeaveTournament = isJoined && acceptsPlayers;
   const displayedStandings = standingsAreFinal
     ? standings
     : standings.filter((row) => row.email === session?.email);
   const canSeeStandings =
     Boolean(standingsAreFinal) || (isJoined && hasFinalizedMatches && displayedStandings.length > 0);
-  const availablePlayers = useMemo(() => {
-    if (!tournament) {
-      return [];
-    }
-
-    return allPlayers
-      .filter((player) => !tournament.playerEmails.includes(player.email))
-      .filter((player) => tournament.gender === "mixto" || player.gender === tournament.gender)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [allPlayers, tournament]);
-  const filteredAvailablePlayers = availablePlayers.filter((player) => (
-    playerFilterLetter === "ALL" ||
-    player.name.trim().toUpperCase().startsWith(playerFilterLetter)
-  ));
-  const totalPlayerPages = Math.max(1, Math.ceil(filteredAvailablePlayers.length / PLAYER_PAGE_SIZE));
-  const paginatedAvailablePlayers = filteredAvailablePlayers.slice(
-    (playerPage - 1) * PLAYER_PAGE_SIZE,
-    playerPage * PLAYER_PAGE_SIZE,
-  );
-
-  useEffect(() => {
-    setPlayerPage(1);
-  }, [playerFilterLetter, tournamentId]);
-
-  useEffect(() => {
-    if (playerPage > totalPlayerPages) {
-      setPlayerPage(totalPlayerPages);
-    }
-  }, [playerPage, totalPlayerPages]);
 
   if (!session) {
     return (
@@ -247,7 +223,7 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
           <span>{tournament.level}</span>
           <span>{formatGender(tournament.gender)}</span>
           <span>{formatTournamentStatus(tournament.status)}</span>
-          <strong>{isJoined ? "Joined" : acceptsPlayers ? "Organizer assignment" : "Registration closed"}</strong>
+          <strong>{isJoined ? "Joined" : acceptsPlayers ? "Join with code" : "Registration closed"}</strong>
         </div>
       </section>
 
@@ -257,6 +233,8 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
             <p className="section-kicker">Management</p>
             <h2>Tournament status</h2>
             <p>Only the creator can edit these options.</p>
+            <p className="field-help">Tournament password: {tournament.password}</p>
+            <p className="field-help">Share this 4-digit password with players so they can join.</p>
             {closeRestriction ? <p className="field-help">{closeRestriction}</p> : null}
           </div>
           <div className="state-actions" aria-label="Tournament status management">
@@ -296,89 +274,64 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
         <section className="panel join-panel">
           <div className="panel-header">
             <p className="section-kicker">Players</p>
-            <h2>Add players to the tournament</h2>
+            <h2>Manage registered players</h2>
             <p>
-              Only the creator can add players. Once you close the tournament,
-              registrations are locked.
+              Players join with the tournament password. While the tournament is open,
+              you can remove any registered player.
             </p>
           </div>
-          {acceptsPlayers ? (
-            <>
-              <div className="filter-bar" aria-label="Player alphabet filter">
-                <button
-                  className={playerFilterLetter === "ALL" ? "filter-button active" : "filter-button"}
-                  onClick={() => setPlayerFilterLetter("ALL")}
-                  type="button"
-                >
-                  All
-                </button>
-                {ALPHABET_FILTERS.map((letter) => (
-                  <button
-                    className={playerFilterLetter === letter ? "filter-button active" : "filter-button"}
-                    key={letter}
-                    onClick={() => setPlayerFilterLetter(letter)}
-                    type="button"
-                  >
-                    {letter}
-                  </button>
-                ))}
-              </div>
-              <div className="stack-list">
-                {paginatedAvailablePlayers.map((player) => (
-                  <div className="info-card admin-user-card" key={player.email}>
-                    <div className="admin-user-main">
-                      <h3>{player.name}</h3>
-                      <p>{player.email}</p>
-                      <span>{formatGender(player.gender)}</span>
-                    </div>
-                    <button
-                      className="secondary-button inline-action"
-                      onClick={() => handleAssignPlayer(player.email)}
-                      type="button"
-                    >
-                      Add to tournament
-                    </button>
-                  </div>
-                ))}
-                {!filteredAvailablePlayers.length ? (
-                  <p className="notice">No players available for this filter.</p>
-                ) : null}
-              </div>
-              {filteredAvailablePlayers.length ? (
-                <div className="filter-bar" aria-label="Player list pagination">
-                  <button
-                    className="secondary-button inline-action"
-                    disabled={playerPage <= 1}
-                    onClick={() => setPlayerPage((current) => Math.max(1, current - 1))}
-                    type="button"
-                  >
-                    Previous
-                  </button>
-                  <span className="field-help">
-                    Page {playerPage} of {totalPlayerPages}
-                  </span>
-                  <button
-                    className="secondary-button inline-action"
-                    disabled={playerPage >= totalPlayerPages}
-                    onClick={() => setPlayerPage((current) => Math.min(totalPlayerPages, current + 1))}
-                    type="button"
-                  >
-                    Next
-                  </button>
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <p className="notice">This tournament is already closed. Players can no longer be added.</p>
-          )}
+          <p className="notice">
+            {acceptsPlayers
+              ? "Registrations are open. Use the registered list below to remove players if needed."
+              : "This tournament is already closed. Registrations are locked."}
+          </p>
         </section>
       ) : !isJoined && acceptsPlayers ? (
         <section className="panel join-panel">
           <div className="panel-header">
             <p className="section-kicker">Registration</p>
-            <h2>Organizer assignment</h2>
-            <p>The tournament creator needs to add you to the player list.</p>
+            <h2>Join this tournament</h2>
+            <p>Enter the 4-digit tournament password to register yourself.</p>
           </div>
+          <form className="auth-form" onSubmit={handleJoinTournament}>
+            <label>
+              Tournament password
+              <input
+                inputMode="numeric"
+                maxLength={4}
+                onChange={(event) => setJoinPassword(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                pattern="[0-9]{4}"
+                placeholder="1234"
+                required
+                type="text"
+                value={joinPassword}
+              />
+              <span className="field-help">Use the 4-digit password shared by the organizer.</span>
+            </label>
+            <button className="primary-button submit-button" type="submit">
+              Join tournament
+            </button>
+          </form>
+          {joinNotice ? (
+            <p className={`notice notice-${joinNoticeTone}`} role="alert">
+              {joinNotice}
+            </p>
+          ) : null}
+        </section>
+      ) : canLeaveTournament && !isCreator ? (
+        <section className="panel join-panel">
+          <div className="panel-header">
+            <p className="section-kicker">Registration</p>
+            <h2>You are registered</h2>
+            <p>You can leave this tournament while it is still open.</p>
+          </div>
+          <button
+            className="danger-button submit-button"
+            onClick={() => handleRemovePlayer(session.email)}
+            type="button"
+          >
+            Leave tournament
+          </button>
           {joinNotice ? (
             <p className={`notice notice-${joinNoticeTone}`} role="alert">
               {joinNotice}
@@ -487,6 +440,14 @@ export function TournamentDetail({ tournamentId }: TournamentDetailProps) {
                     type="button"
                   >
                     Remove
+                  </button>
+                ) : !isCreator && acceptsPlayers && player.email === session.email ? (
+                  <button
+                    className="danger-button inline-action"
+                    onClick={() => handleRemovePlayer(player.email)}
+                    type="button"
+                  >
+                    Leave
                   </button>
                 ) : null}
               </div>

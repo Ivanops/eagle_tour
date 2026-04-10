@@ -42,6 +42,7 @@ export function TournamentsHome() {
   const [location, setLocation] = useState("");
   const [level, setLevel] = useState("Intermediate");
   const [gender, setGender] = useState<TournamentGender>("mixto");
+  const [password, setPassword] = useState("");
   const [filter, setFilter] = useState<TournamentFilter>("general");
 
   useEffect(() => {
@@ -105,13 +106,19 @@ export function TournamentsHome() {
       return;
     }
 
+    if (!/^\d{4}$/.test(password.trim())) {
+      setNoticeTone("error");
+      setNotice("Tournament password must be exactly 4 digits.");
+      return;
+    }
+
     const result = await createTournament({
       name,
       date,
       location,
       level,
       gender,
-      password: `creator-assigned-${Date.now()}`,
+      password,
       creator: session,
     });
 
@@ -127,6 +134,7 @@ export function TournamentsHome() {
     setLocation("");
     setLevel("Intermediate");
     setGender("mixto");
+    setPassword("");
     setShowCreate(false);
     setNoticeTone("success");
     setNotice(result.message);
@@ -272,6 +280,22 @@ export function TournamentsHome() {
                 <option value="masculino">Male only</option>
               </select>
             </label>
+            <label>
+              Tournament password
+              <input
+                inputMode="numeric"
+                maxLength={4}
+                onChange={(event) => setPassword(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                pattern="[0-9]{4}"
+                placeholder="1234"
+                required
+                type="text"
+                value={password}
+              />
+              <span className="field-help">
+                Players will use this 4-digit password to join the tournament.
+              </span>
+            </label>
             <button className="primary-button submit-button" type="submit">
               Save tournament
             </button>
@@ -334,7 +358,7 @@ export function TournamentsHome() {
                     {isJoined
                       ? "Joined"
                       : tournament.status === "abierto"
-                        ? "Organizer assignment"
+                        ? "Join with code"
                         : "Registration closed"}
                   </strong>
                 </div>

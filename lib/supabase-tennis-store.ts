@@ -18,6 +18,7 @@ import type {
 export * from "./local-tennis-store";
 
 const SESSION_CACHE_KEY = "tennis-app.supabase-session-profile";
+const TOURNAMENT_PASSWORD_PATTERN = /^\d{4}$/;
 
 function hasStorage() {
   return typeof window !== "undefined";
@@ -60,6 +61,14 @@ function normalizeGender(gender: unknown): PlayerGender {
 
 function normalizeRole(role: unknown): PlayerRole {
   return role === "super" || role === "organizer" ? role : "player";
+}
+
+function normalizeTournamentPassword(password: string) {
+  return password.trim();
+}
+
+function isValidTournamentPassword(password: string) {
+  return TOURNAMENT_PASSWORD_PATTERN.test(normalizeTournamentPassword(password));
 }
 
 function makeFallbackName(email: string) {
@@ -882,6 +891,13 @@ export async function createTournament(input: CreateTournamentInput) {
     };
   }
 
+  if (!isValidTournamentPassword(input.password)) {
+    return {
+      ok: false as const,
+      message: "Tournament password must be exactly 4 digits.",
+    };
+  }
+
   const { data, error } = await supabase
     .from("tournaments")
     .insert({
@@ -890,7 +906,7 @@ export async function createTournament(input: CreateTournamentInput) {
       location: input.location.trim(),
       level: input.level.trim(),
       gender: input.gender,
-      access_code: input.password,
+      access_code: normalizeTournamentPassword(input.password),
       creator_id: authData.user.id,
     })
     .select("id, name, tournament_date, location, level, gender, status, access_code, creator_id")
@@ -918,7 +934,7 @@ export async function createTournament(input: CreateTournamentInput) {
   return {
     ok: true as const,
     tournament,
-    message: `Tournament created: ${tournament.name}. Add players from tournament management.`,
+    message: `Tournament created: ${tournament.name}. Share its 4-digit password with players so they can join.`,
   };
 }
 
@@ -948,13 +964,58 @@ export async function joinTournament(
   player: SessionPlayer,
   password: string,
 ) {
-  void tournamentId;
-  void player;
-  void password;
+  requireSupabaseEnv();
+
+  const tournament = (await readTournaments()).find((entry) => entry.id === tournamentId);
+  if (!tournament) {
+    return { ok: false as const, message: "We could not find this tournament." };
+  }
+
+  if (tournament.status !== "abierto") {
+    return { ok: false as const, message: "You can only join while the tournament is open." };
+  }
+
+  const normalizedPassword = normalizeTournamentPassword(password);
+  if (!isValidTournamentPassword(normalizedPassword)) {
+    return { ok: false as const, message: "Enter the 4-digit tournament password." };
+  }
+
+  if (tournament.playerEmails.includes(player.email)) {
+    return { ok: true as const, tournament, message: "You are already registered in this tournament." };
+  }
+
+  if (tournament.gender !== "mixto" && tournament.gender !== player.gender) {
+    return {
+      ok: false as const,
+      message: `This tournament is ${localTennisStore.formatGender(tournament.gender)}. Your profile is listed as ${localTennisStore.formatGender(player.gender)}.`,
+    };
+  }
+
+  if (tournament.password !== normalizedPassword) {
+    return { ok: false as const, message: "Incorrect tournament password." };
+  }
+
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) {
+    return { ok: false as const, message: "Sign in to join tournaments." };
+  }
+
+  const { error } = await supabase.from("tournament_players").insert({
+    tournament_id: tournamentId,
+    player_id: authData.user.id,
+  });
+
+  if (error) {
+    return { ok: false as const, message: error.message };
+  }
 
   return {
-    ok: false as const,
-    message: "Tournament registration is handled by the creator.",
+    ok: true as const,
+    tournament: {
+      ...tournament,
+      playerEmails: [...tournament.playerEmails, player.email],
+    },
+    message: "You joined the tournament.",
   };
 }
 
@@ -1031,12 +1092,8 @@ export async function removeTournamentPlayer(
     return { ok: false as const, message: "We could not find this tournament." };
   }
 
-  if (tournament.creatorEmail !== actor.email) {
-    return { ok: false as const, message: "Only the creator can remove players." };
-  }
-
   if (tournament.status !== "abierto") {
-    return { ok: false as const, message: "You can only remove players while the tournament is open." };
+    return { ok: false as const, message: "You can only change registrations while the tournament is open." };
   }
 
   const profiles = await readProfileRecords();
@@ -1046,15 +1103,33 @@ export async function removeTournamentPlayer(
     return { ok: false as const, message: "We could not find that player." };
   }
 
+  const isCreator = tournament.creatorEmail === actor.email;
+  const isLeavingSelf = actor.email === targetProfile.email;
+
+  if (!isCreator && !isLeavingSelf) {
+    return { ok: false as const, message: "Only the creator can remove other players." };
+  }
+
   if (!tournament.playerEmails.includes(targetProfile.email)) {
-    return { ok: true as const, tournament, message: `${targetProfile.name} was not registered.` };
+    return {
+      ok: true as const,
+      tournament,
+      message: isLeavingSelf
+        ? "You were not registered in this tournament."
+        : `${targetProfile.name} was not registered.`,
+    };
+  }
+
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) {
+    return { ok: false as const, message: "Sign in to change tournament registrations." };
   }
 
   const { error } = await supabase
     .from("tournament_players")
     .delete()
     .eq("tournament_id", tournamentId)
-    .eq("player_id", targetProfile.id);
+    .eq("player_id", isLeavingSelf ? authData.user.id : targetProfile.id);
 
   if (error) {
     return { ok: false as const, message: error.message };
@@ -1066,7 +1141,9 @@ export async function removeTournamentPlayer(
       ...tournament,
       playerEmails: tournament.playerEmails.filter((email) => email !== targetProfile.email),
     },
-    message: `${targetProfile.name} was removed from the tournament.`,
+    message: isLeavingSelf
+      ? "You left the tournament."
+      : `${targetProfile.name} was removed from the tournament.`,
   };
 }
 
